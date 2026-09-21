@@ -87,12 +87,14 @@ controle; ATTRIBUTION.md com todas as fontes e licenças.
 
 ## 10. Fases
 F0 reconhecimento (feito). F1 dados, motor, validação, benchmark (feito).
-F2 interface + SCREEN. F3 mundo + replay + visualizador. F4 robôs, laboratório,
+F2 interface + SCREEN (feito). F3 mundo + replay + visualizador (feito). F4 robôs, laboratório,
 segredos, linha do tempo, diário. F5 painel do cérebro, câmeras, vídeo,
 métricas, README final, 100 dias simulados.
 
 ## 11. Estrutura e comandos
 brain/ interface/ world/ replay/ web/ scripts/ docs/ tests/
 `uv run matrix build-pack flywire|malecns`, `uv run matrix validate`,
-`uv run matrix bench`, `uv run matrix reduce --k 4`, `uv run pytest`.
+`uv run matrix bench`, `uv run matrix reduce --k 4`, `uv run matrix screen`,
+`uv run matrix simulate --days N --seconds S --brain reduced|full`, `uv run pytest`;
+`npm run dev` em web/ (serve ../runs). Ganhos: interface/config.yaml; mundo: world/world.yaml.
 Dados baixados ficam em data/ (fora do git).

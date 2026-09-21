@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>A Matrix das Moscas</title>
+    <style>
+      :root { --bg: #0b0f14; --panel: rgba(10, 14, 20, 0.82); --fg: #e6edf3; --muted: #8b98a5; --accent: #7ee787; }
+      html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 13px/1.4 system-ui, sans-serif; overflow: hidden; }
+      #app { position: relative; width: 100%; height: 100%; }
+      canvas { display: block; }
+      #hud { position: absolute; top: 10px; left: 10px; background: var(--panel); padding: 10px 12px; border-radius: 8px; max-width: 360px; pointer-events: none; }
+      #hud h1 { font-size: 15px; margin: 0 0 4px; }
+      #hud .muted { color: var(--muted); }
+      #flies { position: absolute; top: 10px; right: 10px; background: var(--panel); padding: 8px 10px; border-radius: 8px; }
+      #flies button { display: block; width: 100%; text-align: left; background: none; border: 1px solid transparent; color: var(--fg); padding: 4px 6px; border-radius: 6px; cursor: pointer; font: inherit; }
+      #flies button.active { border-color: var(--accent); }
+      #flies .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+      #timeline { position: absolute; left: 10px; right: 10px; bottom: 10px; background: var(--panel); padding: 8px 12px; border-radius: 8px; display: flex; gap: 10px; align-items: center; }
+      #timeline input[type=range] { flex: 1; }
+      #timeline button, #timeline select { background: #1f2933; color: var(--fg); border: 1px solid #334; border-radius: 6px; padding: 4px 8px; font: inherit; cursor: pointer; }
+      #events { position: absolute; left: 10px; right: 10px; bottom: 54px; height: 14px; pointer-events: none; }
+      #events span { position: absolute; bottom: 0; width: 2px; height: 14px; }
+      #load { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--bg); color: var(--muted); font-size: 16px; }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div id="hud"><h1>A Matrix das Moscas</h1><div id="hudbody" class="muted">carregando…</div></div>
+      <div id="flies"></div>
+      <div id="events"></div>
+      <div id="timeline">
+        <select id="run"></select>
+        <button id="play">▶</button>
+        <select id="speed"><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
+        <input id="scrub" type="range" min="0" max="1" step="1" value="0" />
+        <span id="clock" class="muted">0,0 s</span>
+        <select id="cam"><option value="orbit">câmera livre</option><option value="follow">seguir mosca</option><option value="top">de cima</option></select>
+      </div>
+      <div id="load">carregando replay…</div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

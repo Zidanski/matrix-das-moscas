@@ -16,7 +16,7 @@ movimento sai da leitura de neurônios do cérebro simulado.
 - [x] F0 reconhecimento e plano — `docs/F0_reconhecimento.md`
 - [x] F1 dados → CSR, motor event-driven, validação açúcar→MN9, benchmark — `docs/F1_validacao.md`
 - [x] F2 interface sensório-motora + SCREEN por sexo — `docs/F2_screen.md`
-- [ ] F3 mundo da superfície + replay + visualizador
+- [x] F3 mundo da superfície + replay + visualizador — `docs/F3_mundo.md`
 - [ ] F4 robôs, laboratório, segredos, diário
 - [ ] F5 painel do cérebro, câmeras, métricas, 100 dias
 
@@ -35,6 +35,8 @@ uv run matrix validate --pack flywire783  # açúcar -> MN9, amargo reduz
 uv run matrix bench --pack malecns10      # velocidade e memória
 uv run matrix reduce --pack flywire783 --k 4   # subcircuito reduzido
 uv run matrix screen --pack flywire783    # SCREEN: entradas x saidas por sexo
+uv run matrix simulate --days 1 --seconds 60 --brain reduced   # um dia -> runs/day_0000
+cd web; npm install; npm run dev          # visualizador em http://localhost:5173
 ```
 
 ## O que é real / o que é premissa nossa

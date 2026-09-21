@@ -1,0 +1,73 @@
+# =============================================================================
+# O MUNDO (superficie) - geometria, fisica simples e sensores
+# =============================================================================
+# Unidades: cm de escala mosca; segundos biologicos. Tudo aqui e premissa.
+# O codigo do mundo NUNCA move uma mosca: so transforma a situacao fisica em
+# estimulos (interface/config.yaml) e reage ao que as moscas fazem.
+
+arena:
+  radius_cm: 40.0          # arena circular (parede = contato na antena)
+  hills:                   # colinas de cor chapada: gaussianas de altura (x, y, sigma, altura)
+    - [ 12,  10,  9, 3.0]
+    - [-15,  -8, 12, 2.2]
+    - [  5, -18,  7, 1.5]
+  day_length_s: 60.0       # um "dia" completo (luz = 0.5 + 0.5*cos)
+  night_odor_scale: 0.6    # a noite os odores enfraquecem
+  night_loom_scale: 1.3    # a noite os vultos assustam mais
+
+fly:
+  body_length_cm: 0.25
+  contact_radius_cm: 0.30      # pernas/labelo tocam o que esta a esta distancia da superficie
+  antenna_forward_cm: 0.15     # antenas a frente e aos lados da cabeca
+  antenna_lateral_cm: 0.10
+  encounter_cm: 1.0            # "encontro" = duas moscas a menos de 1 cm
+  jump_impulse_cm_s: 8.0       # salto da fibra gigante
+  jump_duration_s: 0.12
+  hunger_rise_per_s: 0.03      # ganho de fome sobe 1.0 -> 2.0 em ~33 s sem comer
+  hunger_max: 2.0
+  water_trap_depth_cm: 1.0     # entrou mais que isso na agua: presa ate ser tocada
+
+objects:
+  spheres:                     # rolam quando empurradas (massa pequena); superficie doce ou amarga
+    - {name: bola_doce_1,   x:  6.0, y:  4.0, r: 1.2, surface: sugar,  mass: 0.5}
+    - {name: bola_doce_2,   x: -9.0, y: 12.0, r: 1.0, surface: sugar,  mass: 0.4}
+    - {name: bola_amarga_1, x:  2.0, y: -7.0, r: 1.1, surface: bitter, mass: 0.5}
+    - {name: bola_neutra_1, x: -6.0, y: -14.0, r: 1.5, surface: none, mass: 0.8}
+  cubes:                       # fixos: abrigo (bloqueiam looming) e cubos ocos (placas de pressao, F4)
+    - {name: cubo_1, x: -3.0, y: 5.0, size: 3.0, hollow: false}
+    - {name: cubo_oco, x: 14.0, y: -12.0, size: 4.0, hollow: true}
+  prisms:                      # rampas/marcos de odor (fontes de CO2 ou comida)
+    - {name: prisma_co2,    x: -20.0, y: 0.0,  size: 3.0, odor: co2,  strength: 1.0, sigma_cm: 8.0}
+    - {name: prisma_comida, x: 18.0,  y: 15.0, size: 3.0, odor: food, strength: 1.0, sigma_cm: 8.0}
+  patches:                     # manchas no chao (S1 usa duas de acucar a 3 cm)
+    - {name: mancha_acucar_1, x: 0.0, y: 0.0,  r: 1.0, kind: sugar, odor_sigma_cm: 6.0}
+    - {name: mancha_acucar_2, x: 3.0, y: 0.0,  r: 1.0, kind: sugar, odor_sigma_cm: 6.0}
+    - {name: mancha_geosmina, x: -12.0, y: -20.0, r: 1.5, kind: geosmin, odor_sigma_cm: 5.0}
+  water:                       # plano azul falso (GRNs de agua; armadilha por tensao superficial)
+    - {name: lago, x: 22.0, y: -5.0, r: 7.0}
+
+senses:                        # como a fisica vira valor [0,1] por lado (antes dos ganhos do config)
+  odor_sigma_default_cm: 6.0
+  cva_sigma_cm: 3.0            # perfil de odor do macho (cVA) em volta dele
+  cva_strength: 1.0
+  song_radius_cm: 4.0          # cancao audivel ate aqui (1/(1+d))
+  loom_gain: 0.25              # valor = min(1, d(theta)/dt / loom_gain) [rad/s]
+  small_object_radius_cm: 6.0  # LC11: outra mosca em movimento ate aqui
+  small_object_min_speed_cm_s: 0.2
+  side_sharpness: 1.0          # esq/dir = 0.5 +- 0.5*sin(bearing)*sharpness
+
+flies:                         # nomes curtos, cor, sexo, semente
+  - {name: Ada,  sex: female, color: "#e63946", seed: 11}
+  - {name: Bia,  sex: female, color: "#f4a261", seed: 12}
+  - {name: Cleo, sex: female, color: "#c77dff", seed: 13}
+  - {name: Dan,  sex: male,   color: "#457b9d", seed: 21}
+  - {name: Edu,  sex: male,   color: "#2a9d8f", seed: 22}
+  - {name: Fil,  sex: male,   color: "#00b4d8", seed: 23}
+spawn_radius_cm: 12.0          # posicoes iniciais ao acaso dentro deste raio
+
+brains:
+  female_full: flywire783
+  female_reduced: flywire783_k3
+  male_full: malecns10
+  male_reduced: malecns10_k3
+  max_concurrent: 4            # processos ativos por vez (round-robin de 15 ms)

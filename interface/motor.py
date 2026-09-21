@@ -96,10 +96,13 @@ class MotorDecoder:
             m.turn_rad_s = float(np.clip(c["turn"]["gain_rad_s_per_hz"] * diff, -c["turn"]["max_rad_s"], c["turn"]["max_rad_s"]))
         if "backward" in self.enabled and self._peak(c["backward"]["pops"]) > c["backward"]["threshold_hz"]:
             m.backward_cm_s = c["backward"]["gain_cm_s_per_hz"] * self._peak(c["backward"]["pops"])
-        for key, attr in [("feed", "feed"), ("groom", "groom"), ("halt", "halt"), ("jump", "jump"),
+        for key, attr in [("feed", "feed"), ("groom", "groom"), ("halt", "halt"),
                           ("accept", "accept"), ("reject", "reject")]:
             if key in self.enabled and key in c and self._peak(c[key]["pops"]) > c[key]["threshold_hz"]:
                 setattr(m, attr, True)
+        # salto: taxa TOTAL dos dois GF (um disparo isolado de um lado nao basta; looming real da 50-150 Hz)
+        if "jump" in self.enabled and self._rate(c["jump"]["pops"]) > c["jump"]["threshold_hz"]:
+            m.jump = True
         if self.sex == "male":
             if "court" in self.enabled and self._peak(c["court"]["pops"]) > c["court"]["threshold_hz"]:
                 m.court = True

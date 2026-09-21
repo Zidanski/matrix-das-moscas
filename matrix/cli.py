@@ -52,6 +52,11 @@ def cmd_calibrate_gain(args: argparse.Namespace) -> int:
     return calibrate_gain.main(args.pack, args.trials)
 
 
+def cmd_simulate(args: argparse.Namespace) -> int:
+    from scripts import simulate_days
+    return simulate_days.main(args)
+
+
 def cmd_bench(args: argparse.Namespace) -> int:
     from scripts import benchmark
     return benchmark.main(args)
@@ -103,6 +108,15 @@ def main(argv: list[str] | None = None) -> int:
     cg.add_argument("--pack", default="malecns10")
     cg.add_argument("--trials", type=int, default=4)
     cg.set_defaults(func=cmd_calibrate_gain)
+
+    sm = sub.add_parser("simulate", help="simula dias do mundo e grava replays em runs/")
+    sm.add_argument("--days", type=int, default=1)
+    sm.add_argument("--start", type=int, default=0, help="indice do primeiro dia")
+    sm.add_argument("--seconds", type=float, default=30.0, help="segundos biologicos por dia")
+    sm.add_argument("--brain", choices=["reduced", "full"], default="reduced")
+    sm.add_argument("--control", default=None, help="nome da mosca com conectoma embaralhado (ex.: Fil)")
+    sm.add_argument("--out", default="runs")
+    sm.set_defaults(func=cmd_simulate)
 
     args = ap.parse_args(argv)
     return args.func(args)
