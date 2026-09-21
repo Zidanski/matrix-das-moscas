@@ -34,6 +34,26 @@ from .diary import write_diary
 # ----------------------------------------------------------------------------
 # processo de uma mosca
 # ----------------------------------------------------------------------------
+SOMA_SAMPLE_MAX = 20000
+CLASS_NAMES = ["outro", "sensorial", "central", "optico", "descendente", "motor", "ascendente", "vnc", "kenyon"]
+
+
+def _classify(neurons) -> np.ndarray:
+    sc = neurons["super_class"].astype("string").fillna("").str.lower().to_numpy()
+    cc = neurons["cell_class"].astype("string").fillna("").to_numpy()
+    out = np.zeros(len(sc), dtype=np.uint8)
+    for i, (a, c) in enumerate(zip(sc, cc)):
+        if c == "Kenyon_Cell": out[i] = 8
+        elif "sensory" in a: out[i] = 1
+        elif a in ("central", "cb_intrinsic"): out[i] = 2
+        elif a.startswith("optic") or a.startswith("ol_") or "visual" in a: out[i] = 3
+        elif "descending" in a: out[i] = 4
+        elif "motor" in a: out[i] = 5
+        elif "ascending" in a: out[i] = 6
+        elif a.startswith("vnc"): out[i] = 7
+    return out
+
+
 def _fly_worker(conn, pack_name: str, identity: dict, cfg: dict, control_seed: int | None):
     from brain.pack import ConnectomePack
     from brain.shuffle import shuffled_pack
@@ -42,7 +62,17 @@ def _fly_worker(conn, pack_name: str, identity: dict, cfg: dict, control_seed: i
     if control_seed is not None:
         pack = shuffled_pack(pack, control_seed)
     fly = FlyBrain(pack, FlyIdentity(**identity), cfg)
-    conn.send({"ok": True, "hud": fly.hud_label, "n": pack.n, "missing": fly.encoder.missing})
+    # amostra de somas para o painel do cerebro (ate 20k neuronios com soma anotado)
+    nrn = pack.neurons
+    has = nrn["soma_x"].notna().to_numpy() if "soma_x" in nrn else np.zeros(pack.n, bool)
+    cand = np.flatnonzero(has)
+    rng = np.random.default_rng(0)
+    sample = np.sort(rng.choice(cand, size=min(SOMA_SAMPLE_MAX, len(cand)), replace=False)) if len(cand) else np.zeros(0, np.int64)
+    xyz = nrn.loc[sample, ["soma_x", "soma_y", "soma_z"]].to_numpy(dtype=np.float32) if len(sample) else np.zeros((0, 3), np.float32)
+    classes = _classify(nrn.iloc[sample]) if len(sample) else np.zeros(0, np.uint8)
+    conn.send({"ok": True, "hud": fly.hud_label, "n": pack.n, "missing": fly.encoder.missing,
+               "soma": xyz, "classes": classes, "class_names": CLASS_NAMES})
+    prev = fly.engine.counts.copy()
     while True:
         msg = conn.recv()
         if msg is None:
@@ -50,7 +80,10 @@ def _fly_worker(conn, pack_name: str, identity: dict, cfg: dict, control_seed: i
         state, hunger = msg
         fly.encoder.hunger_gain = hunger
         m = fly.step(state)
-        conn.send({"motor": asdict(m), "ignited": fly.ignited, "spikes": fly.last_window_spikes})
+        cnt = fly.engine.counts
+        fired = np.flatnonzero(cnt[sample] > prev[sample]).astype(np.uint16) if len(sample) else np.zeros(0, np.uint16)
+        prev = cnt.copy()
+        conn.send({"motor": asdict(m), "ignited": fly.ignited, "spikes": fly.last_window_spikes, "fired": fired})
     conn.close()
 
 
@@ -81,14 +114,15 @@ class LocalFly:
 
     def __init__(self, brain):
         self.brain = brain
-        self.info = {"ok": True, "hud": getattr(brain, "hud_label", "local"), "n": 0, "missing": []}
+        self.info = {"ok": True, "hud": getattr(brain, "hud_label", "local"), "n": 0, "missing": [],
+                     "soma": np.zeros((0, 3), np.float32), "classes": np.zeros(0, np.uint8), "class_names": CLASS_NAMES}
         self._out = None
 
     def send(self, state, hunger):
         if hasattr(self.brain, "encoder"):
             self.brain.encoder.hunger_gain = hunger
         m = self.brain.step(state)
-        self._out = {"motor": asdict(m), "ignited": getattr(self.brain, "ignited", False), "spikes": getattr(self.brain, "last_window_spikes", 0)}
+        self._out = {"motor": asdict(m), "ignited": getattr(self.brain, "ignited", False), "spikes": getattr(self.brain, "last_window_spikes", 0), "fired": np.zeros(0, np.uint16)}
 
     def recv(self):
         return self._out
@@ -161,6 +195,8 @@ class Day:
                     "robots": [{"name": r.name, "level": r.level, "route": r.route, "r": r.r, "night_only": r.night_only} for r in (self.robots.robots if self.robots else [])],
                     "n_robots": len(self.robots.robots) if self.robots else 0}
         writer = ReplayWriter(self.out_dir, manifest, self.rate_pops, len(self.bodies), len(self.objects.spheres), input_pops=INPUTS)
+        for i, fl in enumerate(flies):
+            writer.add_brain_sample(i, fl.info["soma"], fl.info["classes"], fl.info["class_names"], fl.info["n"])
         songs = {b.name: False for b in self.bodies}
         loom_side = {b.name: 0.0 for b in self.bodies}
         prev_state = {b.name: "" for b in self.bodies}
@@ -188,6 +224,7 @@ class Day:
                     outs[i] = flies[i].recv()
             rows = []
             for b, out, st in zip(self.bodies, outs, states):
+                writer.add_spikes(out.get("fired", np.zeros(0, np.uint16)))
                 m = MotorState(**out["motor"])
                 if out["ignited"]:
                     ignited_total[b.name] += 1
