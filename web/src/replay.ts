@@ -31,11 +31,13 @@ export async function listRuns(): Promise<string[]> {
   const top: string[] = await r.json();
   const out: string[] = [];
   for (const d of top) {
+    if (d.includes(".")) continue;                 // arquivos soltos (summary.json)
     const s = await fetch(`/runs/${d}/`);
     if (!s.ok) continue;
-    const items: string[] = await s.json();
+    const items = await s.json();
+    if (!Array.isArray(items)) continue;
     if (items.includes("manifest.json")) out.push(d);
-    else for (const sub of items) if (sub.startsWith("day_")) out.push(`${d}/${sub}`);
+    else for (const sub of items) if (typeof sub === "string" && sub.startsWith("day_")) out.push(`${d}/${sub}`);
   }
   return out.sort();
 }

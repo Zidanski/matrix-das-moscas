@@ -67,9 +67,31 @@ taxa total dos dois GF acima de 20 Hz (~3 disparos em 30 ms; looming real dá
 Cérebros completos ficam para dias curtos de destaque (`--brain full`,
 machos a ~19× o tempo real cada).
 
-## 4. O primeiro dia (60 s, cérebros reduzidos)
+## 4. Os primeiros dias (60 s cada, cérebros reduzidos k=3)
 
-(preenchido com as métricas de `runs/day_0000/manifest.json`)
+**Dia 0, antes da calibração motora** (ganho 0,02 cm/s por Hz): oDN1 disparava
+a 6–16 Hz com odor de comida, mas as moscas andaram 0,05–4 cm em um minuto.
+Ninguém comeu, ninguém se encontrou. Intervenção registrada: ganhos de marcha
+0,15, giro 0,15, ré 0,08 (marcha resultante 0,3–0,6 cm/s média, picos 2 cm/s).
+
+**Dia 0, depois** (`runs/day_0000`, 346 s de parede):
+
+| Mosca | distância (cm) | tempo comendo (s) | tempo andando | ré | saltos | convulsão |
+|---|---|---|---|---|---|---|
+| Ada ♀ | 0,5 | 0 | 2 % | — | 0 | 0 |
+| Bia ♀ | 8,5 | 0 | 35 % | — | 0 | 0 |
+| Cleo ♀ | 6,0 | 0 | 22 % | — | 0 | 0 |
+| Dan ♂ | 22,0 | 0 | 57 % | 10 % | 0 | 0 |
+| Edu ♂ | 4,5 | **1,15** (achou a bola doce) | 21 % | 1 % | 0 | 0 |
+| Fil ♂ | 7,2 | 0 | 32 % | 2 % | 1 | 0 |
+
+Encontros macho-fêmea a menos de 1 cm: 0; esferas empurradas: 0. As moscas
+partem de posições ao acaso num raio de 12 cm e andam devagar, então um
+minuto é pouco para se cruzarem; a estatística de encontros vem dos dias
+seguintes (abaixo) e dos 100 dias da F5. O que já se vê no replay: fêmeas
+andam quando o odor de comida chega às antenas (oDN1/DNa), machos alternam
+marcha e ré (MDN por toque na antena), Edu come quando pisa na bola doce
+(MN9), e ninguém entrou em convulsão em 6 cérebros × 60 s.
 
 ## 5. Limitações desta fase
 
