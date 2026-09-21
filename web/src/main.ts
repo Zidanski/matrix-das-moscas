@@ -3,6 +3,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { listRuns, loadReplay, Replay } from "./replay";
 import { World3D } from "./scene";
 import { mood, thoughts, likes } from "./mood";
+import { BrainCloud, Traces } from "./brain";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const app = $("app");
@@ -10,7 +11,23 @@ const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "lo
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.BasicShadowMap;
+renderer.domElement.classList.add("world");
 app.prepend(renderer.domElement);
+// painel do cerebro: segundo renderer num canvas proprio
+const brainCanvas = $<HTMLCanvasElement>("braincanvas");
+const brainRenderer = new THREE.WebGLRenderer({ canvas: brainCanvas, antialias: false, alpha: true, powerPreference: "low-power" });
+brainRenderer.setPixelRatio(1);
+const brain = new BrainCloud();
+const traces = new Traces($<HTMLCanvasElement>("traces"), [
+  { key: "in_orn_dm1_R", label: "ORN DM1 (odor)", color: "#f4a261", max: 1 },
+  { key: "in_lc4_R", label: "LC4 (vulto)", color: "#e63946", max: 1 },
+  { key: "rate_MN9_all", label: "MN9 (comer)", color: "#7ee787", max: 80 },
+  { key: "rate_gf_all", label: "GF (salto)", color: "#ff7b54", max: 100 },
+  { key: "rate_odn1_all", label: "oDN1 (marcha)", color: "#8ecae6", max: 30 },
+  { key: "rate_dna02_all", label: "DNa02 (giro)", color: "#c77dff", max: 30 },
+]);
+let brainOn = false, matrixOn = false, brainDir = "", brainFly = -1;
+let recorder: MediaRecorder | null = null;
 const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 2000);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -39,6 +56,7 @@ async function boot() {
 
 async function open(dir: string) {
   $("load").style.display = "flex";
+  brainDir = dir; brainFly = -1;
   replay = await loadReplay(dir);
   if (world) world.scene.clear();
   world = new World3D(replay.manifest);
@@ -148,6 +166,13 @@ function draw() {
   }
   if (k % 66 === 0) buildFlyPanel();
   $<HTMLInputElement>("scrub").value = String(k);
+  if (brainOn || matrixOn) {
+    if (brainFly !== selected) { brainFly = selected; brain.load(replay, brainDir, selected); }
+    brain.update(replay.spikes(k, selected), m.dt_s);
+    traces.draw(replay, selected, k);
+    const bs = m.brain_samples?.find((b) => b.fly === selected);
+    $("braininfo").textContent = bs ? `${m.flies[selected].name}: ${bs.n} somas de ${bs.n_total} neurônios (coordenadas do próprio conectoma) · ${replay.spikes(k, selected).length} disparos nesta janela` : "sem amostra neural neste replay";
+  }
   $("clock").textContent = `${t.toFixed(1).replace(".", ",")} s / ${m.seconds} s`;
 }
 
@@ -165,7 +190,37 @@ function loop() {
   }
   controls.update();
   if (world) renderer.render(world.scene, camera);
+  if ((brainOn || matrixOn) && brain.points) {
+    const w = brainCanvas.clientWidth, h = brainCanvas.clientHeight;
+    if (brainCanvas.width !== w || brainCanvas.height !== h) { brainRenderer.setSize(w, h, false); brain.camera.aspect = w / h; brain.camera.updateProjectionMatrix(); }
+    brainRenderer.render(brain.scene, brain.camera);
+  }
 }
+
+function setBrainUI() {
+  brainCanvas.style.display = brainOn || matrixOn ? "block" : "none";
+  $("brainpanel").style.display = brainOn || matrixOn ? "block" : "none";
+  document.body.classList.toggle("matrix", matrixOn);
+  if (replay) { brainFly = -1; draw(); }
+}
+$("brainbtn").onclick = () => { brainOn = !brainOn; if (brainOn) matrixOn = false; setBrainUI(); };
+$("matrixbtn").onclick = () => { matrixOn = !matrixOn; if (matrixOn) brainOn = false; setBrainUI(); };
+$("recbtn").onclick = () => {
+  if (recorder) { recorder.stop(); recorder = null; $("recbtn").textContent = "⏺ vídeo"; return; }
+  const stream = (renderer.domElement as HTMLCanvasElement).captureStream(30);
+  const chunks: Blob[] = [];
+  recorder = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp9" });
+  recorder.ondataavailable = (e) => chunks.push(e.data);
+  recorder.onstop = () => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(chunks, { type: "video/webm" }));
+    a.download = `matrix-das-moscas-${brainDir.replace("/", "_")}.webm`;
+    a.click();
+  };
+  recorder.start(500);
+  $("recbtn").textContent = "⏹ parar";
+  if (!playing) $("play").click();
+};
 
 $("play").onclick = () => { playing = !playing; $("play").textContent = playing ? "❚❚" : "▶"; if (replay && tick >= replay.manifest.ticks - 1) tick = 0; };
 $<HTMLSelectElement>("speed").onchange = (e) => (speed = +(e.target as HTMLSelectElement).value);

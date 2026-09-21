@@ -23,6 +23,11 @@
       #events span { position: absolute; bottom: 0; width: 2px; height: 14px; }
       #diary { display: none; position: absolute; left: 10px; bottom: 60px; width: min(560px, calc(100% - 20px)); max-height: 60%; overflow: auto; background: var(--panel); padding: 10px 14px; border-radius: 8px; }
       #diary pre { white-space: pre-wrap; font: 12px/1.45 system-ui, sans-serif; margin: 0; }
+      #brainpanel { display: none; position: absolute; right: 10px; bottom: 60px; width: 320px; background: var(--panel); border-radius: 8px; padding: 8px 10px; }
+      #brainpanel canvas { display: block; width: 300px; height: 140px; margin-top: 6px; }
+      #braincanvas { position: absolute; right: 10px; bottom: 270px; width: 320px; height: 260px; border-radius: 8px; background: rgba(0,0,0,0.6); display: none; }
+      body.matrix #braincanvas { inset: 0; width: 100%; height: 100%; border-radius: 0; background: #000; z-index: 0; }
+      body.matrix canvas.world { opacity: 0.35; position: relative; z-index: 1; }
       #load { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--bg); color: var(--muted); font-size: 16px; }
     </style>
   </head>
@@ -39,8 +44,13 @@
         <span id="clock" class="muted">0,0 s</span>
         <select id="cam"><option value="orbit">câmera livre</option><option value="follow">seguir mosca</option><option value="top">de cima</option><option value="security">câmera de segurança (lab)</option></select>
         <button id="diarybtn">📓 diário</button>
+        <button id="brainbtn" title="painel do cérebro da mosca selecionada">🧠 cérebro</button>
+        <button id="matrixbtn" title="corte Matrix: o cérebro por trás do mundo">🟩 Matrix</button>
+        <button id="recbtn" title="gravar vídeo (webm)">⏺ vídeo</button>
       </div>
       <div id="diary"></div>
+      <div id="brainpanel"><div id="braininfo" class="muted"></div><canvas id="traces" width="300" height="140"></canvas></div>
+      <canvas id="braincanvas"></canvas>
       <div id="load">carregando replay…</div>
     </div>
     <script type="module" src="/src/main.ts"></script>

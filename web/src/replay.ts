@@ -8,12 +8,16 @@ export interface Manifest {
   robots?: { name: string; level: string; route: number[][]; r: number; night_only: boolean }[]; n_robots?: number;
   world_row_len?: number; robot_fields?: string[]; lab_fields?: string[]; level_ids?: Record<string, number>;
   diary?: string; secrets?: any;
+  brain_samples?: { fly: number; n: number; n_total: number; class_names: string[] }[];
+  spikes?: { n: number };
 }
 export interface ReplayEvent { t: number; kind: string; flies: string[]; [k: string]: any; }
 
 export class Replay {
   fi: Record<string, number> = {};
   stateNames: Record<number, string> = {};
+  spikePtr: Int32Array | null = null;
+  spikeIdx: Uint16Array | null = null;
   constructor(public manifest: Manifest, public frames: Float32Array, public objects: Float32Array, public events: ReplayEvent[], public world: Float32Array = new Float32Array(0)) {
     manifest.fields.forEach((f, i) => (this.fi[f] = i));
     for (const [k, v] of Object.entries(manifest.state_ids)) this.stateNames[v] = k;
@@ -36,6 +40,11 @@ export class Replay {
     const o = tick * this.rowLen + nr * 4;
     if (!this.rowLen) return { door: false, hatch: false, genOff: false, elevator: false };
     return { door: this.world[o] > 0.5, hatch: this.world[o + 1] > 0.5, genOff: this.world[o + 2] > 0.5, elevator: this.world[o + 3] > 0.5 };
+  }
+  spikes(tick: number, fly: number): Uint16Array {
+    if (!this.spikePtr || !this.spikeIdx) return new Uint16Array(0);
+    const k = tick * this.manifest.n_flies + fly;
+    return this.spikeIdx.subarray(this.spikePtr[k], this.spikePtr[k + 1]);
   }
   level(tick: number, fly: number): number { return this.fi["level"] !== undefined ? this.get(tick, fly, "level") : 0; }
 }
@@ -66,5 +75,10 @@ export async function loadReplay(dir: string): Promise<Replay> {
   ]);
   let wb = new ArrayBuffer(0);
   if (m.world_row_len) { const r = await fetch(`/runs/${dir}/world.bin`); if (r.ok) wb = await r.arrayBuffer(); }
-  return new Replay(m, new Float32Array(fb), new Float32Array(ob), ev, new Float32Array(wb));
+  const rp = new Replay(m, new Float32Array(fb), new Float32Array(ob), ev, new Float32Array(wb));
+  if (m.spikes) {
+    const [sp, si] = await Promise.all([fetch(`/runs/${dir}/spikes_ptr.bin`), fetch(`/runs/${dir}/spikes.bin`)]);
+    if (sp.ok && si.ok) { rp.spikePtr = new Int32Array(await sp.arrayBuffer()); rp.spikeIdx = new Uint16Array(await si.arrayBuffer()); }
+  }
+  return rp;
 }

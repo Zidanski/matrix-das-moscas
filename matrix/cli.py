@@ -57,6 +57,11 @@ def cmd_simulate(args: argparse.Namespace) -> int:
     return simulate_days.main(args)
 
 
+def cmd_report(args: argparse.Namespace) -> int:
+    from scripts import report_days
+    return report_days.main(args)
+
+
 def cmd_bench(args: argparse.Namespace) -> int:
     from scripts import benchmark
     return benchmark.main(args)
@@ -117,6 +122,11 @@ def main(argv: list[str] | None = None) -> int:
     sm.add_argument("--control", default=None, help="nome da mosca com conectoma embaralhado (ex.: Fil)")
     sm.add_argument("--out", default="runs")
     sm.set_defaults(func=cmd_simulate)
+
+    rp = sub.add_parser("report", help="relatorio dos dias simulados (csv, markdown, grafico)")
+    rp.add_argument("--runs", default="runs/cem")
+    rp.add_argument("--out", default="docs/F5_relatorio")
+    rp.set_defaults(func=cmd_report)
 
     args = ap.parse_args(argv)
     return args.func(args)
