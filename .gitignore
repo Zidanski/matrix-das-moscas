@@ -1,0 +1,28 @@
+# dados baixados e derivados (fora do git)
+data/
+# saidas de simulacao
+runs/
+out/
+*.parquet
+*.feather
+*.npy
+*.npz
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+# numba cache
+*.nbi
+*.nbc
+# node
+web/node_modules/
+web/dist/
+# editor/os
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
