@@ -59,6 +59,40 @@ mosca sozinha (S1 precisa de duas, S2 de um casal, S3 de um robô, S4 de três),
 mas todos são improváveis, e os únicos reflexos sociais confirmados na F2 são
 fracos (pIP10 a 6 Hz no macho). O experimento é medir isso.
 
-## 3. O primeiro dia com laboratório
+## 3. Os primeiros dias com laboratório (60 s, cérebros reduzidos k=3, arena de 25 cm)
 
-(preenchido com `runs/day_0020`)
+**Dia 20** (`runs/day_0020`, 293 s de parede, `loom_gain` ainda 0,25): as
+moscas andaram muito mais no mundo menor (Cleo 69 cm, Fil 68, Edu 59, Dan 58),
+Dan cantou 14× e Edu 3×, R3 saiu à noite (19 s) e perseguiu Cleo, Dan ficou
+preso no lago e escapou saltando várias vezes. Mas houve **447 saltos**: no
+mundo apertado o salto de uma mosca (8 cm/s a 1–2 cm) é um vulto máximo para
+as vizinhas, que saltam também. Intervenção registrada: `loom_gain` 0,25 →
+1,0 rad/s (só aproximações rápidas e próximas saturam LC4: robôs, esferas,
+saltos a menos de 1,6 cm).
+
+**Dia 21** (`runs/day_0021`, 411 s de parede, config atual):
+
+| Mosca | distância | comeu | cantou | saltos | outros |
+|---|---|---|---|---|---|
+| Ada ♀ | 2 cm | **25 s** | — | 2 | 3 s a < 1 cm de Bia |
+| Bia ♀ | 10 cm | — | — | 0 | **encontro com Ada aos 26 s** |
+| Cleo ♀ | 5 cm | — | — | 0 | |
+| Dan ♂ | 25 cm | — | 23× | 18 | empurrou a bola amarga aos 9 s |
+| Edu ♂ | 16 cm | — | 12× | 22 | |
+| Fil ♂ | 60 cm | — | **33×** | 47 | perseguido por R3 à noite (20 s) |
+
+Primeiro **encontro** registrado (Ada e Bia, fêmea-fêmea), saltos caíram de
+447 para 89, e os três machos cantaram (pIP10) sem nenhuma fêmea ao alcance
+da canção: o reflexo existe, a coincidência não. Ninguém entrou no
+laboratório (a rampa fica a 15 cm do centro; em um minuto as moscas cobrem
+2–60 cm) e nenhum segredo chegou perto. O diário de cada dia está em
+`runs/day_00XX/diario.md` e no botão 📓 do visualizador.
+
+## 4. O que a F5 vai medir
+
+100 dias com as métricas por dia (distância, tempo comendo, encontros
+macho-fêmea, cortes iniciadas, fugas, capturas, índice de agregação,
+progresso em cada segredo), comparação com o modo controle (`--control Fil`)
+e, se em 100 dias nenhum segredo disparar, ajuste de distâncias e ganhos
+registrado como intervenção. Também: painel do cérebro (nuvem de somas),
+corte "Matrix", gravação de vídeo e README final.
