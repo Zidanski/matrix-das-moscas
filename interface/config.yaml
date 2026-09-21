@@ -115,3 +115,6 @@ interventions:
   - date: 2026-09-21
     what: "world.yaml senses.loom_gain 0.25 -> 1.0 rad/s"
     why: "F4, dia 20 no mundo de 25 cm: 447 saltos em um minuto, cascata em que o salto de uma mosca (8 cm/s a 1-2 cm) vira vulto maximo para as outras; com 1,0 so aproximacoes rapidas e proximas (robos, esferas, saltos a < 1,6 cm) saturam LC4"
+  - date: 2026-09-21
+    what: "dias de 30 s biologicos (day_length_s 60 -> 30 em world.yaml; --seconds 30)"
+    why: "F5: 100 dias de 60 s custavam ~7 h de parede; com 30 s, ~3,5 h. Metricas sao por segundo biologico; os 11 dias de 60 s ja gravados ficam como estao (dias 21, 100-104, 150-153)"

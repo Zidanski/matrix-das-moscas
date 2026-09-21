@@ -11,7 +11,7 @@ arena:
     - [  8,   7,  7, 2.0]
     - [-10,  -5,  8, 1.6]
     - [  3, -12,  5, 1.0]
-  day_length_s: 60.0       # um "dia" completo (luz = 0.5 + 0.5*cos)
+  day_length_s: 30.0       # um "dia" completo (luz = 0.5 + 0.5*cos); dias de 30 s biologicos (intervencao: era 60)
   night_odor_scale: 0.6    # a noite os odores enfraquecem
   night_loom_scale: 1.3    # a noite os vultos assustam mais
 
