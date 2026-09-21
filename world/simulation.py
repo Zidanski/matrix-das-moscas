@@ -169,6 +169,7 @@ class Day:
         ignited_total = {b.name: 0 for b in self.bodies}
         encounters = set()
         captures = {b.name: 0 for b in self.bodies}
+        last_stuck: dict[str, float] = {}
         for k in range(n_ticks):
             t = k * self.dt
             self.physics.t = t
@@ -200,7 +201,8 @@ class Day:
                 if b.state != prev_state[b.name]:
                     writer.add_event(t, "estado", [b.name], de=prev_state[b.name], para=b.state)
                     prev_state[b.name] = b.state
-                if "agua_presa" in b.contacts:
+                if "agua_presa" in b.contacts and t - last_stuck.get(b.name, -1e9) > 3.0:
+                    last_stuck[b.name] = t
                     writer.add_event(t, "presa_na_agua", [b.name])
                 for c in b.contacts:
                     if c.startswith("bola") and any(s.name == c and s.pushes == 1 for s in self.objects.spheres):

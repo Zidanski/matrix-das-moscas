@@ -112,3 +112,6 @@ interventions:
   - date: 2026-09-21
     what: "forward.gain 0.02 -> 0.15 cm/s por Hz; turn.gain 0.05 -> 0.15; backward.gain 0.02 -> 0.08"
     why: "F3, primeiro dia de 60 s: oDN1 dispara a 6-16 Hz com odor de comida, mas 0,02 cm/s por Hz dava 0,1-0,3 cm/s e as moscas andaram 0,05-4 cm em um minuto; com 0,15 a marcha fica em 0,9-2 cm/s"
+  - date: 2026-09-21
+    what: "world.yaml senses.loom_gain 0.25 -> 1.0 rad/s"
+    why: "F4, dia 20 no mundo de 25 cm: 447 saltos em um minuto, cascata em que o salto de uma mosca (8 cm/s a 1-2 cm) vira vulto maximo para as outras; com 1,0 so aproximacoes rapidas e proximas (robos, esferas, saltos a < 1,6 cm) saturam LC4"

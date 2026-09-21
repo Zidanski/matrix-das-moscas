@@ -134,9 +134,10 @@ function draw() {
   });
   world.setUnderground(anyUnder || camMode === "security");
   if (camMode === "security") {
-    const lab = m.world.lab; const [x0, , x1, y1] = lab.bounds;
-    camera.position.lerp(new THREE.Vector3((x0 + x1) / 2 + 6, -world.labDepth + 9, -(y1 - 1) + 14), 0.1);
-    controls.target.lerp(new THREE.Vector3((x0 + x1) / 2, -world.labDepth, 0), 0.2);
+    const lab = m.world.lab; const [x0, y0, x1, y1] = lab.bounds;
+    // canto sudeste do laboratorio, olhando em diagonal para o centro (camera de seguranca)
+    camera.position.lerp(new THREE.Vector3(x1 - 2, -world.labDepth + 5, -y0 - 2), 0.1);
+    controls.target.lerp(new THREE.Vector3((x0 + x1) / 2 - 4, -world.labDepth + 0.5, -(y0 + y1) / 2), 0.2);
   } else if (camMode === "follow") {
     const goal = selPos.clone().add(new THREE.Vector3(-4, 3, 4));
     camera.position.lerp(goal, 0.08);
@@ -159,6 +160,8 @@ function loop() {
     tick += (dtWall * speed) / replay.manifest.dt_s;
     if (tick >= replay.manifest.ticks) { tick = replay.manifest.ticks - 1; playing = false; $("play").textContent = "▶"; }
     draw();
+  } else if (replay && camMode !== "orbit") {
+    draw();   // cameras que seguem/interpolam precisam redesenhar mesmo em pausa
   }
   controls.update();
   if (world) renderer.render(world.scene, camera);
@@ -170,5 +173,6 @@ $<HTMLSelectElement>("cam").onchange = (e) => (camMode = (e.target as HTMLSelect
 $("diarybtn").onclick = () => { const d = $("diary"); d.style.display = d.style.display === "block" ? "none" : "block"; };
 addEventListener("keydown", (e) => { if (e.code === "Space") { e.preventDefault(); $("play").click(); } });
 
+(window as any).__dbg = { get world() { return world; }, get replay() { return replay; }, camera, controls, get camMode() { return camMode; } };
 boot();
 loop();

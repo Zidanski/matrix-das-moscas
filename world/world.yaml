@@ -70,7 +70,7 @@ senses:                        # como a fisica vira valor [0,1] por lado (antes 
   cva_sigma_cm: 3.0            # perfil de odor do macho (cVA) em volta dele
   cva_strength: 1.0
   song_radius_cm: 4.0          # cancao audivel ate aqui (1/(1+d))
-  loom_gain: 0.25              # valor = min(1, d(theta)/dt / loom_gain) [rad/s]
+  loom_gain: 1.0               # valor = min(1, d(theta)/dt / loom_gain) [rad/s]. Era 0,25: no mundo de 25 cm cada salto virava vulto para todas e havia ~450 saltos/min (intervencao registrada em interface/config.yaml)
   small_object_radius_cm: 6.0  # LC11: outra mosca em movimento ate aqui
   small_object_min_speed_cm_s: 0.2
   side_sharpness: 1.0          # esq/dir = 0.5 +- 0.5*sin(bearing)*sharpness
