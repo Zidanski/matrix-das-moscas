@@ -104,7 +104,7 @@ def test_senses_odor_sides_and_social():
     s = Senses(w, o)
     food = next(p for p in o.prisms if p.odor == "food")
     # mosca olhando para +x com a comida a esquerda: antena esquerda mais perto -> orn_dm1 E > D
-    b = FlyBody("a", "female", food.x, food.y - 3.0, 0.0)
+    b = FlyBody("a", "female", food.x, food.y - 9.0, 0.0)   # longe o bastante para nao saturar em 1.0
     st = s.sense(b, [b], {}, 0.0, 0.015)
     l, r = st["orn_dm1"]
     assert l > r > 0

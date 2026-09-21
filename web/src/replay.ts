@@ -4,7 +4,7 @@ export interface FlyInfo { name: string; sex: "female" | "male"; color: string; 
 export interface Manifest {
   world: any; dt_s: number; seconds: number; ticks: number; n_flies: number; n_spheres: number;
   fields: string[]; flies: FlyInfo[]; spheres: any[]; cubes: any[]; prisms: any[]; patches: any[]; water: any[];
-  state_ids: Record<string, number>; metrics?: any; brain_mode: string;
+  state_ids: Record<string, number>; metrics?: any; brain_mode: string; day_index?: number; wall_s?: number;
 }
 export interface ReplayEvent { t: number; kind: string; flies: string[]; [k: string]: any; }
 

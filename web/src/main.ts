@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { listRuns, loadReplay, Replay } from "./replay";
 import { World3D } from "./scene";
+import { mood, thoughts, likes } from "./mood";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const app = $("app");
@@ -59,7 +60,8 @@ function buildFlyPanel() {
   div.innerHTML = "";
   replay!.manifest.flies.forEach((f, i) => {
     const b = document.createElement("button");
-    b.innerHTML = `<span class="dot" style="background:${f.color}"></span>${f.name} <span style="color:#8b98a5">${f.sex === "male" ? "♂" : "♀"}</span>`;
+    const md = replay ? mood(replay, Math.max(0, Math.min(replay.manifest.ticks - 1, Math.floor(tick))), i) : null;
+    b.innerHTML = `<span class="dot" style="background:${f.color}"></span>${f.name} <span style="color:#8b98a5">${f.sex === "male" ? "♂" : "♀"}</span> ${md ? md.emoji : ""}`;
     b.onclick = () => { selected = i; buildFlyPanel(); draw(); };
     if (i === selected) b.classList.add("active");
     div.appendChild(b);
@@ -96,16 +98,22 @@ function draw() {
     const heading = replay!.get(k, i, "heading");
     const state = replay!.stateNames[replay!.get(k, i, "state")] ?? "?";
     const pos = world!.toThree(x, y, 0);
-    fm.update(pos, heading, state, t);
+    fm.update(pos, heading, state, t, Math.abs(replay!.get(k, i, "v")) > 0.05);
+    const md = mood(replay!, k, i);
+    const th = thoughts(replay!, k, i);
+    fm.setBubble(md.emoji + (th.length ? " " + th.map((x) => x.emoji).join("") : ""));
     if (i === selected) {
       selPos = pos;
       const f = m.flies[i];
       const rates = ["MN9", "gf", "odn1", "dna01", "dna02", "mdn", "p1", "pip10"].map((p) => {
         const key = `rate_${p}_all`; return key in replay!.fi ? `${p} ${replay!.get(k, i, key).toFixed(1)}` : null;
       }).filter(Boolean).join(" · ");
+      const lk = likes(replay!, k, i);
       sel.innerHTML = `<b style="color:${f.color}">${f.name}</b> ${f.sex === "male" ? "♂ macho" : "♀ fêmea"} — <span class="muted">${f.hud}</span><br>` +
+        `<span style="font-size:18px">${md.emoji}</span> <b style="color:${md.color}">${md.word}</b> · pensa em: ${th.length ? th.map((x) => `${x.emoji} ${x.label}`).join(", ") : "nada (sensores em silêncio)"}<br>` +
         `estado: <b>${state}</b> · v ${replay!.get(k, i, "v").toFixed(2)} cm/s · fome ×${replay!.get(k, i, "hunger").toFixed(2)}` +
         (replay!.get(k, i, "ignited") > 0 ? ' · <b style="color:#e63946">CONVULSÃO</b>' : "") + "<br>" +
+        `gosta de: ${lk.length ? lk.join(", ") : "ainda não se sabe"}<br>` +
         `<span class="muted">Hz: ${rates}</span><br>` +
         `<span class="muted">${m.brain_mode === "full" ? "cérebro completo" : "cérebro reduzido"} · luz ${(light * 100).toFixed(0)} % · dia ${m.day_index ?? 0}</span>`;
     }
@@ -118,6 +126,7 @@ function draw() {
     camera.position.lerp(new THREE.Vector3(0.01, m.world.arena.radius_cm * 2.2, 0), 0.1);
     controls.target.lerp(new THREE.Vector3(0, 0, 0), 0.2);
   }
+  if (k % 66 === 0) buildFlyPanel();
   $<HTMLInputElement>("scrub").value = String(k);
   $("clock").textContent = `${t.toFixed(1).replace(".", ",")} s / ${m.seconds} s`;
 }

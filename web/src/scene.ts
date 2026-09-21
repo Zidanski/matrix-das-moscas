@@ -112,6 +112,28 @@ export class World3D {
       mesh.userData.water = true;
       this.scene.add(mesh);
     }
+    // decoracao (so visual): arvores e formas
+    const decor = m.world.objects?.decor ?? {};
+    for (const t of decor.trees ?? []) {
+      const h = t.h ?? 4;
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.25, h * 0.55, 5), new THREE.MeshLambertMaterial({ color: 0x8d6e63 }));
+      stem.position.set(t.x, this.height(t.x, t.y) + h * 0.275, -t.y);
+      const crownGeo = t.kind === "cone" ? new THREE.ConeGeometry(h * 0.35, h * 0.7, 6) : new THREE.SphereGeometry(h * 0.32, 6, 5);
+      const crown = new THREE.Mesh(crownGeo, new THREE.MeshLambertMaterial({ color: t.kind === "cone" ? 0x2a9d8f : 0x52b788, flatShading: true }));
+      crown.position.set(t.x, this.height(t.x, t.y) + h * 0.55 + (t.kind === "cone" ? h * 0.35 : h * 0.3), -t.y);
+      crown.castShadow = true;
+      this.scene.add(stem, crown);
+    }
+    for (const sh of decor.shapes ?? []) {
+      const sz = sh.size ?? 2;
+      const geo = sh.kind === "pyramid" ? new THREE.ConeGeometry(sz * 0.7, sz, 4) : sh.kind === "torus" ? new THREE.TorusGeometry(sz * 0.6, sz * 0.2, 6, 14) : new THREE.CylinderGeometry(sz * 0.4, sz * 0.4, sz * 2.2, 8);
+      const mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: new THREE.Color(sh.color ?? "#ffffff"), flatShading: true }));
+      const base = this.height(sh.x, sh.y);
+      mesh.position.set(sh.x, base + (sh.kind === "torus" ? sz * 0.8 : sh.kind === "column" ? sz * 1.1 : sz * 0.5), -sh.y);
+      if (sh.kind === "pyramid") mesh.rotation.y = Math.PI / 4;
+      mesh.castShadow = true;
+      this.scene.add(mesh);
+    }
     for (const f of m.flies) this.flies.push(new FlyMesh(f, this.scene));
   }
   /** coordenadas do mundo (x, y no plano, z altura) -> three (x, y=altura, z=-y) */
@@ -135,10 +157,14 @@ export class FlyMesh {
   group = new THREE.Group();
   wings: THREE.Mesh[] = [];
   label: THREE.Sprite;
+  bubble: THREE.Sprite;
+  bubbleText = "";
   body: THREE.Mesh;
+  L: number;
   constructor(public info: FlyInfo, scene: THREE.Scene) {
     const male = info.sex === "male";
     const L = male ? 0.22 : 0.28;              // dimorfismo: macho menor
+    this.L = L;
     const color = new THREE.Color(info.color);
     const mat = new THREE.MeshLambertMaterial({ color, flatShading: true });
     const dark = new THREE.MeshLambertMaterial({ color: male ? 0x1b1b1b : color.clone().multiplyScalar(0.6), flatShading: true });
@@ -165,17 +191,58 @@ export class FlyMesh {
     this.label = makeLabel(info.name + (info.control ? " (controle)" : ""), info.color);
     this.label.position.y = L * 2.2;
     this.group.add(this.label);
+    this.bubble = makeBubble("");
+    this.bubble.position.y = L * 4.2;
+    this.bubble.visible = false;
+    this.group.add(this.bubble);
     thorax.castShadow = true;
     scene.add(this.group);
   }
-  update(pos: THREE.Vector3, heading: number, state: string, t: number) {
-    this.group.position.copy(pos).add(new THREE.Vector3(0, 0.15, 0));
+  update(pos: THREE.Vector3, heading: number, state: string, t: number, moving: boolean) {
+    // no chao: o corpo fica a altura das pernas
+    const L = this.L;
+    this.group.position.copy(pos).add(new THREE.Vector3(0, L * 0.45, 0));
     this.group.rotation.y = heading;
+    this.group.rotation.z = 0;
     const a = STATE_WING[state] ?? 0.1;
     const flap = a * Math.sin(t * (state === "cantando" ? 220 : 60));
     for (const w of this.wings) w.rotation.z = w.userData.side * (0.15 + flap);
-    if (state === "saltando") this.group.position.y += 0.6 * Math.abs(Math.sin(t * 30));
+    if (state === "saltando") {
+      this.group.position.y += 0.9 * Math.abs(Math.sin(t * 26));       // arco do salto
+    } else if (moving || state === "andando" || state === "re") {
+      const hop = Math.abs(Math.sin(t * 16));                            // pulinhos ao andar
+      this.group.position.y += L * 0.35 * hop;
+      this.group.rotation.z = 0.12 * Math.sin(t * 16);
+    }
   }
+  setBubble(text: string) {
+    if (text === this.bubbleText) return;
+    this.bubbleText = text;
+    this.bubble.visible = text.length > 0;
+    if (text) {
+      const mat = this.bubble.material as THREE.SpriteMaterial;
+      mat.map?.dispose();
+      mat.map = bubbleTexture(text);
+      mat.needsUpdate = true;
+    }
+  }
+}
+
+function bubbleTexture(text: string): THREE.CanvasTexture {
+  const c = document.createElement("canvas"); c.width = 256; c.height = 96;
+  const g = c.getContext("2d")!;
+  g.fillStyle = "rgba(255,255,255,0.92)";
+  g.beginPath(); g.roundRect(8, 4, 240, 68, 18); g.fill();
+  g.beginPath(); g.moveTo(118, 72); g.lineTo(138, 72); g.lineTo(128, 90); g.closePath(); g.fill();
+  g.font = "44px system-ui"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillStyle = "#222";
+  g.fillText(text, 128, 40);
+  return new THREE.CanvasTexture(c);
+}
+
+function makeBubble(text: string): THREE.Sprite {
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: bubbleTexture(text || " "), depthTest: false, transparent: true }));
+  sp.scale.set(2.2, 0.82, 1);
+  return sp;
 }
 
 function makeLabel(text: string, color: string): THREE.Sprite {
