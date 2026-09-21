@@ -85,13 +85,28 @@ Ninguém comeu, ninguém se encontrou. Intervenção registrada: ganhos de march
 | Edu ♂ | 4,5 | **1,15** (achou a bola doce) | 21 % | 1 % | 0 | 0 |
 | Fil ♂ | 7,2 | 0 | 32 % | 2 % | 1 | 0 |
 
-Encontros macho-fêmea a menos de 1 cm: 0; esferas empurradas: 0. As moscas
-partem de posições ao acaso num raio de 12 cm e andam devagar, então um
-minuto é pouco para se cruzarem; a estatística de encontros vem dos dias
-seguintes (abaixo) e dos 100 dias da F5. O que já se vê no replay: fêmeas
-andam quando o odor de comida chega às antenas (oDN1/DNa), machos alternam
-marcha e ré (MDN por toque na antena), Edu come quando pisa na bola doce
-(MN9), e ninguém entrou em convulsão em 6 cérebros × 60 s.
+**Dias 0–3** (`runs/day_000{0..3}`, 331–347 s de parede cada; sementes dos
+cérebros e posições iniciais mudam por dia):
+
+| Dia | Distância por mosca (cm; Ada, Bia, Cleo, Dan, Edu, Fil) | Comeu (s) | Saltos | Esferas | Menor distância entre 2 moscas | Encontros < 1 cm |
+|---|---|---|---|---|---|---|
+| 0 | 0,5 / 8,5 / 6,0 / 22,0 / 4,5 / 7,2 | Edu 1,2 | 2 | 0 | 4,56 cm | 0 |
+| 1 | 5,6 / 2,1 / 5,8 / 5,7 / 26,9 / 9,2 | — | 7 | 0 | 1,69 cm | 0 |
+| 2 | 1,8 / 2,0 / 2,1 / 31,7 / 22,6 / 22,5 | Cleo 59,0; Fil 0,6 | 96 | 0 | 1,12 cm | 0 |
+| 3 | 23,2 / 1,1 / 3,9 / 9,3 / 22,1 / 32,4 | Ada 21,1 | 39 | 1 (Fil) | 2,67 cm | 0 |
+
+Leitura dos quatro minutos: **andar** existe (até 32 cm por minuto, machos
+mais que fêmeas), **comer** existe (Cleo passou 59 s sobre a mancha de açúcar
+em que nasceu; Ada 21 s; Edu e Fil acharam a bola doce), uma esfera foi
+**empurrada** (Fil, dia 3), os **saltos** vêm em cascatas (dia 2: 96) porque
+o salto de uma vira looming para as outras, e **nenhum cérebro entrou em
+convulsão** em 24 cérebro-minutos. **Encontro** a menos de 1 cm não aconteceu
+em 4 minutos; o mais perto foi 1,12 cm. As moscas nascem num raio de 12 cm e
+andam a 0,3–0,6 cm/s sem nenhum reflexo de aproximação social (F2: cVA não
+chega aos DNs na fêmea; no macho pIP10 é fraco), então cruzar-se é obra do
+acaso. Isso é exatamente o que o experimento deve mostrar; a estatística de
+100 dias (F5) vai dizer com que frequência. Não mexo nas distâncias agora:
+qualquer ajuste entra como intervenção registrada.
 
 ## 5. Limitações desta fase
 
