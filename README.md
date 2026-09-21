@@ -15,7 +15,7 @@ movimento sai da leitura de neurônios do cérebro simulado.
 
 - [x] F0 reconhecimento e plano — `docs/F0_reconhecimento.md`
 - [x] F1 dados → CSR, motor event-driven, validação açúcar→MN9, benchmark — `docs/F1_validacao.md`
-- [ ] F2 interface sensório-motora + SCREEN por sexo
+- [x] F2 interface sensório-motora + SCREEN por sexo — `docs/F2_screen.md`
 - [ ] F3 mundo da superfície + replay + visualizador
 - [ ] F4 robôs, laboratório, segredos, diário
 - [ ] F5 painel do cérebro, câmeras, métricas, 100 dias
@@ -34,6 +34,7 @@ uv run pytest                             # testes (inclui equivalência com Bri
 uv run matrix validate --pack flywire783  # açúcar -> MN9, amargo reduz
 uv run matrix bench --pack malecns10      # velocidade e memória
 uv run matrix reduce --pack flywire783 --k 4   # subcircuito reduzido
+uv run matrix screen --pack flywire783    # SCREEN: entradas x saidas por sexo
 ```
 
 ## O que é real / o que é premissa nossa
@@ -50,6 +51,8 @@ uv run matrix reduce --pack flywire783 --k 4   # subcircuito reduzido
 | | Histamina tratada como inibitória e `unclear` como sem saída no MaleCNS |
 | | Regra de sinal por neurônio (voto majoritário) ignora co-transmissão e receptores pós-sinápticos |
 | Bistabilidade do modelo: com estímulo forte (≥ 62 GRNs a 100 Hz) um laço recorrente do lobo antenal e do corpo cogumelar se auto-sustenta; igual no Brian2 | Taxas sensoriais do mundo calibradas abaixo do limiar de ignição; o estado de "convulsão" é detectado e registrado, nunca escondido |
+| 39 % (fêmea) e 33 % (macho) dos neurônios locais do lobo antenal têm previsão de NT excitatória, contra a literatura (GABA/Glu); Eckstein 2024 cita a classe como mal prevista | Correção de sinal: ALLN forçados a inibitórios nos dois sexos (`config.yaml`); no macho, monoaminas sem efeito rápido; tetos sensoriais por sexo. Tudo em `interventions` |
+| Quais reflexos existem no LIF (SCREEN, `docs/F2_screen.md`): comer, fuga, marcha e giro por odor/objeto (fêmea), ré por toque (macho), canção fraca (macho) | Só esses entram no mundo (`reflexes_enabled`); sociais da fêmea, agressão, grooming e aceitação/rejeição são lacunas, não código |
 
 Lacunas documentadas (F0): a fêmea não tem no cérebro os neurônios de contato de
 feromônio (ppk23/ppk25) nem cerdas das pernas; o FlyWire não separa GRNs de água

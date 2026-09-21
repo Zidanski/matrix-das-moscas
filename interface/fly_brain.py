@@ -93,6 +93,8 @@ class FlyBrain:
                                 eps_mv=float(self.cfg["brain"]["eps_mv"]), chunk_steps=int(round(self.dt_ms / 0.1)),
                                 pre_gain=make_pre_gain(pack, identity.sex, self.cfg))
         self.encoder = SensoryEncoder(pack, self.cfg, hunger_gain=identity.hunger_gain)
+        if enabled_reflexes is None:
+            enabled_reflexes = set(self.cfg.get("reflexes_enabled", {}).get(identity.sex, []) or self.cfg["motor"].keys())
         self.decoder = MotorDecoder(pack, self.cfg, identity.sex, enabled_reflexes)
         self.ignited = False
         self.last_window_spikes = 0

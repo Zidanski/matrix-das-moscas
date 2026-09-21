@@ -43,19 +43,19 @@ brain:
 sensory:
   sugar:      {max_hz: 50, gamma: 1.0, sides: true,  note: "contato do labelo/pernas com acucar; F1: 62 LB3 a 100 Hz ignita, 50 Hz estavel"}
   water:      {max_hz: 30, gamma: 1.0, sides: true,  note: "femea: mesmos GRNs LB3 do acucar (lacuna FlyWire), ganho menor"}
-  bitter:     {max_hz: 50, gamma: 1.0, sides: true,  note: "contato com superficie amarga"}
-  leg_grn:    {max_hz: 30, gamma: 1.0, sides: true,  note: "gustacao de perna (contato com superficies); nao e cerda"}
+  bitter:     {max_hz: {female: 50, male: 30}, gamma: 1.0, sides: true,  note: "contato com superficie amarga"}
+  leg_grn:    {max_hz: {female: 30, male: 5}, gamma: 1.0, sides: true,  note: "gustacao de perna (contato com superficies); nao e cerda"}
   ppk23:      {max_hz: 40, gamma: 1.0, sides: true,  note: "SO MACHO: contato cuticular com outra mosca (feromonio de contato)"}
   orn_dm1:    {max_hz: 40, gamma: 0.5, sides: true,  note: "odor de comida (Or42b); concentracao amostrada nas antenas E/D"}
-  orn_v:      {max_hz: 40, gamma: 0.5, sides: true,  note: "CO2 (Gr21a/Gr63a)"}
-  orn_da2:    {max_hz: 40, gamma: 0.5, sides: true,  note: "geosmina (Or56a)"}
-  orn_da1:    {max_hz: 40, gamma: 0.5, sides: true,  note: "cVA (Or67d): perfil de odor de macho proximo"}
+  orn_v:      {max_hz: {female: 40, male: 7}, gamma: 0.5, sides: true,  note: "CO2 (Gr21a/Gr63a)"}
+  orn_da2:    {max_hz: {female: 40, male: 30}, gamma: 0.5, sides: true,  note: "geosmina (Or56a)"}
+  orn_da1:    {max_hz: {female: 40, male: 7}, gamma: 0.5, sides: true,  note: "cVA (Or67d): perfil de odor de macho proximo"}
   orn_dl3:    {max_hz: 40, gamma: 0.5, sides: true,  note: "cVA (Or65a)"}
   jo_a:       {max_hz: 40, gamma: 1.0, sides: true,  note: "cancao de corte de macho vizinho (vibracao de asa)"}
   jo_b:       {max_hz: 40, gamma: 1.0, sides: true,  note: "cancao (JO-B)"}
-  jo_ce:      {max_hz: 40, gamma: 1.0, sides: true,  note: "poeira/toque na antena (Shiu: JO-CE -> grooming)"}
-  lc4:        {max_hz: 60, gamma: 1.0, sides: true,  note: "looming (robo/objeto se aproximando); breve"}
-  lplc2:      {max_hz: 60, gamma: 1.0, sides: true,  note: "looming"}
+  jo_ce:      {max_hz: {female: 40, male: 7}, gamma: 1.0, sides: true,  note: "poeira/toque na antena (Shiu: JO-CE -> grooming)"}
+  lc4:        {max_hz: {female: 60, male: 40}, gamma: 1.0, sides: true,  note: "looming (robo/objeto se aproximando); breve"}
+  lplc2:      {max_hz: {female: 60, male: 30}, gamma: 1.0, sides: true,  note: "looming"}
   lc11:       {max_hz: 40, gamma: 1.0, sides: true,  note: "objeto pequeno em movimento (outra mosca)"}
 
 # -----------------------------------------------------------------------------
@@ -70,12 +70,22 @@ motor:
   backward:   {pops: [mdn], threshold_hz: 10, gain_cm_s_per_hz: 0.02}
   halt:       {pops: [halt], threshold_hz: 10, note: "candidatos comunitarios; confirmar no SCREEN"}
   jump:       {pops: [gf], threshold_hz: 5, impulse_cm_s: 8.0, note: "fibra gigante: salto na direcao oposta ao looming"}
-  court:      {pops: [p1], threshold_hz: 5, note: "SO MACHO: segue a femea + canta"}
+  court:      {pops: [p1, pip10], threshold_hz: 3, note: "SO MACHO: segue a femea + canta. SCREEN: P1 mal dispara (1 Hz); pIP10 chega a 6 Hz com cVA + objeto pequeno; candidato fraco"}
   song:       {pops: [pip10, vpr6], threshold_hz: 5, note: "SO MACHO: vibracao de asa"}
   aggression_male:   {pops: [tk], threshold_hz: 5}
   aggression_female: {pops: [aipg], threshold_hz: 5}
   accept:     {pops: [vpodn], threshold_hz: 5, note: "SO FEMEA: abertura da placa vaginal"}
   reject:     {pops: [dnp13], threshold_hz: 5, note: "SO FEMEA: extrusao do ovipositor"}
+
+# -----------------------------------------------------------------------------
+# REFLEXOS HABILITADOS POR SEXO: so o que o SCREEN (docs/F2_screen.md) mostrou.
+# Um reflexo ausente aqui existe no decodificador mas fica desligado no mundo.
+# -----------------------------------------------------------------------------
+reflexes_enabled:
+  female: [feed, jump, forward, turn, halt]            # halt = candidatos comunitarios DNg60/CB0890 (acucar -> 16 Hz)
+  male:   [feed, jump, forward, turn, backward, court, song]   # backward = MDN por toque na antena/JO; court/song = pIP10 fraco
+  # Nao habilitados (lacunas documentadas): groom (aDN nunca dispara), aggression_female (aIPg nunca),
+  # aggression_male (Tk nunca), accept (vpoDN nunca), reject (DNp13 so no macho com cVA+LC11, sem funcao clara).
 
 # -----------------------------------------------------------------------------
 # Historico de intervencoes do laboratorio (data, o que, por que)
@@ -90,3 +100,9 @@ interventions:
   - date: 2026-09-21
     what: "macho: presyn_gain dopamina/octopamina/serotonina = 0"
     why: "F2: no MaleCNS o acucar a 50 Hz ignitava em 1/2 trials com MN9 3,5 Hz; com monoaminas sem saida rapida, 0/2 e MN9 33 Hz. Na femea a mesma regra mata acucar->MN9, entao nao se aplica"
+  - date: 2026-09-21
+    what: "macho: tetos por sexo: leg_grn 5 Hz, orn_v 7, orn_da1 7, jo_ce 7, bitter 30, orn_da2 30"
+    why: "F2: limiares de ignicao do macho (docs/F2_screen/malecns10_ignition.csv): essas entradas ignitam o VNC a 10-60 Hz; tetos a ~70 % do maximo estavel. Femea estavel ate 80 Hz em tudo"
+  - date: 2026-09-21
+    what: "macho: lc4 40 Hz, lplc2 30 Hz; court usa pIP10 com limiar 3 Hz"
+    why: "SCREEN do macho: LPLC2 E a 60 Hz e looming bilateral ignitam o VNC; P1 quase nao dispara, pIP10 (DN de cancao) responde a cVA + objeto pequeno"
