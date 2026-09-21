@@ -1,0 +1,162 @@
+[
+  {
+    "pack": "flywire783",
+    "eps": 0.0001,
+    "seed": 0,
+    "spikes": 9087,
+    "neurons": 365,
+    "MN9": 38.5,
+    "active_end": 6919,
+    "wall_s": 1.428005399997346
+  },
+  {
+    "pack": "flywire783",
+    "eps": 0.0001,
+    "seed": 1,
+    "spikes": 8349,
+    "neurons": 346,
+    "MN9": 34.5,
+    "active_end": 5075,
+    "wall_s": 0.6682986000087112
+  },
+  {
+    "pack": "flywire783",
+    "eps": 0.001,
+    "seed": 0,
+    "spikes": 9087,
+    "neurons": 365,
+    "MN9": 38.5,
+    "active_end": 6429,
+    "wall_s": 0.9558064000448212
+  },
+  {
+    "pack": "flywire783",
+    "eps": 0.001,
+    "seed": 1,
+    "spikes": 8349,
+    "neurons": 346,
+    "MN9": 34.5,
+    "active_end": 5005,
+    "wall_s": 0.6352383999619633
+  },
+  {
+    "pack": "flywire783",
+    "eps": 0.01,
+    "seed": 0,
+    "spikes": 9087,
+    "neurons": 365,
+    "MN9": 38.5,
+    "active_end": 5959,
+    "wall_s": 0.7476633999613114
+  },
+  {
+    "pack": "flywire783",
+    "eps": 0.01,
+    "seed": 1,
+    "spikes": 8349,
+    "neurons": 346,
+    "MN9": 34.5,
+    "active_end": 4820,
+    "wall_s": 0.5963713999954052
+  },
+  {
+    "pack": "flywire783",
+    "eps": 0.05,
+    "seed": 0,
+    "spikes": 8860,
+    "neurons": 373,
+    "MN9": 37.0,
+    "active_end": 3200,
+    "wall_s": 0.587288000038825
+  },
+  {
+    "pack": "flywire783",
+    "eps": 0.05,
+    "seed": 1,
+    "spikes": 8240,
+    "neurons": 340,
+    "MN9": 32.0,
+    "active_end": 3930,
+    "wall_s": 0.7631878000102006
+  },
+  {
+    "pack": "malecns10",
+    "eps": 0.0001,
+    "seed": 0,
+    "spikes": 40807,
+    "neurons": 2316,
+    "MN9": 9.0,
+    "active_end": 32230,
+    "wall_s": 23.769093800045084
+  },
+  {
+    "pack": "malecns10",
+    "eps": 0.0001,
+    "seed": 1,
+    "spikes": 692045,
+    "neurons": 13853,
+    "MN9": 35.5,
+    "active_end": 143619,
+    "wall_s": 61.427716699952725
+  },
+  {
+    "pack": "malecns10",
+    "eps": 0.001,
+    "seed": 0,
+    "spikes": 40807,
+    "neurons": 2316,
+    "MN9": 9.0,
+    "active_end": 31416,
+    "wall_s": 20.775889099983033
+  },
+  {
+    "pack": "malecns10",
+    "eps": 0.001,
+    "seed": 1,
+    "spikes": 692045,
+    "neurons": 13853,
+    "MN9": 35.5,
+    "active_end": 142833,
+    "wall_s": 57.29247350001242
+  },
+  {
+    "pack": "malecns10",
+    "eps": 0.01,
+    "seed": 0,
+    "spikes": 40807,
+    "neurons": 2316,
+    "MN9": 9.0,
+    "active_end": 30278,
+    "wall_s": 17.434431899979245
+  },
+  {
+    "pack": "malecns10",
+    "eps": 0.01,
+    "seed": 1,
+    "spikes": 709838,
+    "neurons": 14174,
+    "MN9": 35.0,
+    "active_end": 137056,
+    "wall_s": 56.085289100010414
+  },
+  {
+    "pack": "malecns10",
+    "eps": 0.05,
+    "seed": 0,
+    "spikes": 40174,
+    "neurons": 1900,
+    "MN9": 7.5,
+    "active_end": 26235,
+    "wall_s": 9.95758529996965
+  },
+  {
+    "pack": "malecns10",
+    "eps": 0.05,
+    "seed": 1,
+    "spikes": 51479,
+    "neurons": 5188,
+    "MN9": 19.5,
+    "active_end": 57167,
+    "wall_s": 26.720155799994245
+  }
+]

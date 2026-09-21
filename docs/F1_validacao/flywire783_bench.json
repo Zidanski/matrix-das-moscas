@@ -1,0 +1,16 @@
+{
+  "pack": "flywire783",
+  "n": 138639,
+  "edges": 15091983,
+  "stim_n": 62,
+  "rate_hz": 100.0,
+  "t_run_ms": 1000.0,
+  "wall_s": 0.5006494999979623,
+  "wall_per_bio_s": 0.5006494999979623,
+  "spikes": 9087,
+  "spikes_per_bio_s": 9087.0,
+  "neurons_spiking": 365,
+  "active_at_end": 6919,
+  "rss_mb_before": 0.0,
+  "rss_mb_after": 0.0
+}

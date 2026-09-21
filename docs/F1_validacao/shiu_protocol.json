@@ -1,0 +1,102 @@
+{
+  "published_brian2": {
+    "sugarR_100Hz": {
+      "trials": 30,
+      "MN9_L_hz": 67.03333333333333,
+      "MN9_R_hz": 48.63333333333333,
+      "spikes_per_trial": {
+        "min": 8781.0,
+        "50%": 9642.0,
+        "max": 10523.0
+      }
+    },
+    "sugarR": {
+      "trials": 30,
+      "MN9_L_hz": 93.26666666666667,
+      "MN9_R_hz": 61.8,
+      "spikes_per_trial": {
+        "min": 16626.0,
+        "50%": 17070.5,
+        "max": 17402.0
+      }
+    }
+  },
+  "ours": {
+    "flywire630": {
+      "sugar_ids_found": 21,
+      "sugar_ids_total": 21,
+      "bitter_ids_found": 21,
+      "sugarR_100Hz": {
+        "MN9_L_hz": 67.03333333333333,
+        "MN9_R_hz": 48.4,
+        "MN9_L_sd": 5.26853596973275,
+        "MN9_R_sd": 4.5531345777122185,
+        "spikes_per_trial": {
+          "min": 8871,
+          "50%": 9704.5,
+          "max": 10464
+        },
+        "exploded_frac": 0.0,
+        "trials": 30,
+        "wall_s": 81.20999646186829
+      },
+      "sugarR_200Hz": {
+        "MN9_L_hz": 90.73333333333333,
+        "MN9_R_hz": 62.666666666666664,
+        "MN9_L_sd": 4.471621886838217,
+        "MN9_R_sd": 4.729462558468353,
+        "spikes_per_trial": {
+          "min": 16322,
+          "50%": 16897.5,
+          "max": 17509
+        },
+        "exploded_frac": 0.0,
+        "trials": 30,
+        "wall_s": 170.98090720176697
+      },
+      "sugar100_bitter100": {
+        "MN9_L_hz": 4.166666666666667,
+        "MN9_R_hz": 10.266666666666667,
+        "exploded_frac": 0.0
+      }
+    },
+    "flywire783": {
+      "sugar_ids_found": 20,
+      "sugar_ids_total": 21,
+      "bitter_ids_found": 20,
+      "sugarR_100Hz": {
+        "MN9_L_hz": 62.13333333333333,
+        "MN9_R_hz": NaN,
+        "MN9_L_sd": 5.076880207733699,
+        "MN9_R_sd": NaN,
+        "spikes_per_trial": {
+          "min": 8213,
+          "50%": 8995.5,
+          "max": 9713
+        },
+        "exploded_frac": 0.0,
+        "trials": 30,
+        "wall_s": 84.99416518211365
+      },
+      "sugarR_200Hz": {
+        "MN9_L_hz": 90.0,
+        "MN9_R_hz": NaN,
+        "MN9_L_sd": 3.6103300068858926,
+        "MN9_R_sd": NaN,
+        "spikes_per_trial": {
+          "min": 15719,
+          "50%": 16176.0,
+          "max": 16733
+        },
+        "exploded_frac": 0.0,
+        "trials": 30,
+        "wall_s": 173.17743229866028
+      },
+      "sugar100_bitter100": {
+        "MN9_L_hz": 3.033333333333333,
+        "MN9_R_hz": NaN,
+        "exploded_frac": 0.0
+      }
+    }
+  }
+}

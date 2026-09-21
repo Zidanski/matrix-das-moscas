@@ -1,0 +1,16 @@
+{
+  "pack": "malecns10_k4",
+  "n": 124599,
+  "edges": 20622154,
+  "stim_n": 17,
+  "rate_hz": 100.0,
+  "t_run_ms": 1000.0,
+  "wall_s": 15.81383169995388,
+  "wall_per_bio_s": 15.81383169995388,
+  "spikes": 26293,
+  "spikes_per_bio_s": 26293.0,
+  "neurons_spiking": 1897,
+  "active_at_end": 32074,
+  "rss_mb_before": 209.34765625,
+  "rss_mb_after": 227.203125
+}

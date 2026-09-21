@@ -1,0 +1,18 @@
+[
+  {
+    "trial": 0,
+    "n_spikes": 352297,
+    "wall_s": 128.95327377319336,
+    "neurons_spiking": 8575,
+    "MN9_L_hz": 10.0,
+    "MN9_R_hz": 9.0
+  },
+  {
+    "trial": 1,
+    "n_spikes": 435664,
+    "wall_s": 137.60635995864868,
+    "neurons_spiking": 8636,
+    "MN9_L_hz": 7.0,
+    "MN9_R_hz": 7.0
+  }
+]

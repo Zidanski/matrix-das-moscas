@@ -1,0 +1,146 @@
+{
+  "pack": "malecns10",
+  "trials": 5,
+  "t_run_ms": 1000.0,
+  "sugar_sweep": [
+    {
+      "rate_hz": 10.0,
+      "n_spikes_last_trial": 240,
+      "wall_s": 2.844548749923706,
+      "exploded_frac": 0.2,
+      "MN9_L_hz": 3.8,
+      "MN9_L_sd": 6.112282715974449,
+      "MN9_L_hz_stable": 0.75,
+      "MN9_R_hz": 0.0,
+      "MN9_R_sd": 0.0,
+      "MN9_R_hz_stable": 0.0
+    },
+    {
+      "rate_hz": 25.0,
+      "n_spikes_last_trial": 467319,
+      "wall_s": 9.500975131988525,
+      "exploded_frac": 0.8,
+      "MN9_L_hz": 28.0,
+      "MN9_L_sd": 10.334408546211051,
+      "MN9_L_hz_stable": 9.0,
+      "MN9_R_hz": 0.0,
+      "MN9_R_sd": 0.0,
+      "MN9_R_hz_stable": 0.0
+    },
+    {
+      "rate_hz": 50.0,
+      "n_spikes_last_trial": 30428,
+      "wall_s": 6.765233182907105,
+      "exploded_frac": 0.2,
+      "MN9_L_hz": 18.4,
+      "MN9_L_sd": 3.4985711369071804,
+      "MN9_L_hz_stable": 17.25,
+      "MN9_R_hz": 0.0,
+      "MN9_R_sd": 0.0,
+      "MN9_R_hz_stable": 0.0
+    },
+    {
+      "rate_hz": 100.0,
+      "n_spikes_last_trial": 538906,
+      "wall_s": 12.488704347610474,
+      "exploded_frac": 0.6,
+      "MN9_L_hz": 60.4,
+      "MN9_L_sd": 16.0822883943797,
+      "MN9_L_hz_stable": 42.0,
+      "MN9_R_hz": 0.0,
+      "MN9_R_sd": 0.0,
+      "MN9_R_hz_stable": 0.0
+    },
+    {
+      "rate_hz": 150.0,
+      "n_spikes_last_trial": 61940,
+      "wall_s": 10.424068403244018,
+      "exploded_frac": 0.2,
+      "MN9_L_hz": 77.6,
+      "MN9_L_sd": 10.61319932913728,
+      "MN9_L_hz_stable": 73.25,
+      "MN9_R_hz": 0.6,
+      "MN9_R_sd": 0.48989794855663565,
+      "MN9_R_hz_stable": 0.5
+    },
+    {
+      "rate_hz": 200.0,
+      "n_spikes_last_trial": 57379,
+      "wall_s": 9.691306447982788,
+      "exploded_frac": 0.0,
+      "MN9_L_hz": 96.4,
+      "MN9_L_sd": 4.029888335921977,
+      "MN9_L_hz_stable": 96.4,
+      "MN9_R_hz": 1.8,
+      "MN9_R_sd": 0.4,
+      "MN9_R_hz_stable": 1.8
+    }
+  ],
+  "bitter": [
+    {
+      "rate_hz": 100.0,
+      "n_spikes_last_trial": 538906,
+      "wall_s": 12.633423995971679,
+      "exploded_frac": 0.6,
+      "MN9_L_hz": 60.4,
+      "MN9_L_sd": 16.0822883943797,
+      "MN9_L_hz_stable": 42.0,
+      "MN9_R_hz": 0.0,
+      "MN9_R_sd": 0.0,
+      "MN9_R_hz_stable": 0.0,
+      "bitter_hz": 0
+    },
+    {
+      "rate_hz": 50.0,
+      "n_spikes_last_trial": 158380,
+      "wall_s": 7.171686506271362,
+      "exploded_frac": 0.6,
+      "MN9_L_hz": 11.6,
+      "MN9_L_sd": 5.122499389946279,
+      "MN9_L_hz_stable": 6.0,
+      "MN9_R_hz": 0.0,
+      "MN9_R_sd": 0.0,
+      "MN9_R_hz_stable": 0.0,
+      "bitter_hz": 50
+    },
+    {
+      "rate_hz": 100.0,
+      "n_spikes_last_trial": 757045,
+      "wall_s": 9.813283681869507,
+      "exploded_frac": 0.4,
+      "MN9_L_hz": 4.6,
+      "MN9_L_sd": 5.276362383309167,
+      "MN9_L_hz_stable": 0.3333333333333333,
+      "MN9_R_hz": 0.0,
+      "MN9_R_sd": 0.0,
+      "MN9_R_hz_stable": 0.0,
+      "bitter_hz": 100
+    },
+    {
+      "rate_hz": 200.0,
+      "n_spikes_last_trial": 781994,
+      "wall_s": 15.386194515228272,
+      "exploded_frac": 1.0,
+      "MN9_L_hz": 0.2,
+      "MN9_L_sd": 0.4,
+      "MN9_L_hz_stable": NaN,
+      "MN9_R_hz": 0.0,
+      "MN9_R_sd": 0.0,
+      "MN9_R_hz_stable": NaN,
+      "bitter_hz": 200
+    }
+  ],
+  "gate": {
+    "sugar_monotone_increase": true,
+    "bitter_halves_mn9": true,
+    "mn9_at_100hz_stable": 42.0,
+    "exploded_frac_by_rate": {
+      "10.0": 0.2,
+      "25.0": 0.8,
+      "50.0": 0.2,
+      "100.0": 0.6,
+      "150.0": 0.2,
+      "200.0": 0.0
+    }
+  }
+}

@@ -1,0 +1,44 @@
+[
+  {
+    "seed": 3000,
+    "total": 290119,
+    "exploded": true,
+    "MN9_hz": 25.5,
+    "wall_s": 307.04739022254944
+  },
+  {
+    "seed": 3001,
+    "total": 393093,
+    "exploded": true,
+    "MN9_hz": 9.0,
+    "wall_s": 306.84674096107483
+  },
+  {
+    "seed": 3002,
+    "total": 404435,
+    "exploded": true,
+    "MN9_hz": 11.5,
+    "wall_s": 265.142076253891
+  },
+  {
+    "seed": 3003,
+    "total": 439284,
+    "exploded": true,
+    "MN9_hz": 9.5,
+    "wall_s": 159.5669288635254
+  },
+  {
+    "seed": 3004,
+    "total": 364627,
+    "exploded": true,
+    "MN9_hz": 17.5,
+    "wall_s": 168.93875932693481
+  },
+  {
+    "seed": 3005,
+    "total": 423429,
+    "exploded": true,
+    "MN9_hz": 4.5,
+    "wall_s": 160.94357061386108
+  }
+]
