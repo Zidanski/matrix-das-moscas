@@ -89,7 +89,8 @@ controle; ATTRIBUTION.md com todas as fontes e licenças.
 F0 reconhecimento (feito). F1 dados, motor, validação, benchmark (feito).
 F2 interface + SCREEN (feito). F3 mundo + replay + visualizador (feito). F4 robôs, laboratório,
 segredos, linha do tempo, diário (feito). F5 painel do cérebro, câmeras, vídeo,
-métricas, README final, 100 dias simulados.
+métricas, README final (feito); 100 dias em runs/cem via scripts/run_100_days.ps1 e
+`uv run matrix report` para o relatório.
 
 ## 11. Estrutura e comandos
 brain/ interface/ world/ replay/ web/ scripts/ docs/ tests/

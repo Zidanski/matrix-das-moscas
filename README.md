@@ -18,7 +18,7 @@ movimento sai da leitura de neurônios do cérebro simulado.
 - [x] F2 interface sensório-motora + SCREEN por sexo — `docs/F2_screen.md`
 - [x] F3 mundo da superfície + replay + visualizador — `docs/F3_mundo.md`
 - [x] F4 robôs, laboratório, segredos S1–S4, linha do tempo, diário — `docs/F4_lab.md`
-- [ ] F5 painel do cérebro, câmeras, métricas, 100 dias
+- [x] F5 painel do cérebro, corte Matrix, vídeo, relatório de métricas — `docs/F5_final.md`; os 100 dias rodam em `runs/cem/` (`scripts/run_100_days.ps1`) e o relatório sai com `uv run matrix report`
 
 ## Como rodar
 
@@ -37,7 +37,20 @@ uv run matrix reduce --pack flywire783 --k 4   # subcircuito reduzido
 uv run matrix screen --pack flywire783    # SCREEN: entradas x saidas por sexo
 uv run matrix simulate --days 1 --seconds 60 --brain reduced   # um dia -> runs/day_0000
 cd web; npm install; npm run dev          # visualizador em http://localhost:5173
+powershell -File scripts/run_100_days.ps1 # 100 dias (50 normais + 50 com Fil em modo controle), ~10 h
+uv run matrix report --runs runs/cem      # relatorio: docs/F5_relatorio/{relatorio.md,dias.csv,dias.png}
 ```
+
+## Métricas por dia e comparação com o controle
+
+Cada dia grava distância percorrida, tempo comendo, encontros macho-fêmea,
+cortes iniciadas (canção), fugas, capturas, tempo médio a menos de 1 cm de
+outra mosca (índice de agregação) e o progresso de cada segredo. O modo
+controle (`--control Fil`) roda uma das moscas com o conectoma embaralhado
+preservando grau; o relatório compara as duas condições. Se em 100 dias
+nenhum segredo disparar, os ajustes de distâncias e ganhos entram em
+`interface/config.yaml` → `interventions` como "intervenção do laboratório".
+Resultado dos 100 dias: `docs/F5_relatorio/relatorio.md` (gerado ao fim do lote).
 
 ## O que é real / o que é premissa nossa
 
