@@ -42,6 +42,16 @@ def cmd_validate(args: argparse.Namespace) -> int:
     return validate.main(args)
 
 
+def cmd_screen(args: argparse.Namespace) -> int:
+    from scripts import screen
+    return screen.main(args.pack, args.trials, args.t_pre, args.t_stim)
+
+
+def cmd_calibrate_gain(args: argparse.Namespace) -> int:
+    from scripts import calibrate_gain
+    return calibrate_gain.main(args.pack, args.trials)
+
+
 def cmd_bench(args: argparse.Namespace) -> int:
     from scripts import benchmark
     return benchmark.main(args)
@@ -81,6 +91,18 @@ def main(argv: list[str] | None = None) -> int:
     bm.add_argument("--rate", type=float, default=100.0)
     bm.add_argument("--stim", default="LB3", help="rotulo de tipo estimulado (prefixo)")
     bm.set_defaults(func=cmd_bench)
+
+    sc = sub.add_parser("screen", help="SCREEN: cada entrada unilateral x cada saida, por sexo")
+    sc.add_argument("--pack", default="flywire783")
+    sc.add_argument("--trials", type=int, default=2)
+    sc.add_argument("--t-pre", type=float, default=150.0)
+    sc.add_argument("--t-stim", type=float, default=600.0)
+    sc.set_defaults(func=cmd_screen)
+
+    cg = sub.add_parser("calibrate-gain", help="ganho global/KC por sexo vs ignicao e acucar->MN9")
+    cg.add_argument("--pack", default="malecns10")
+    cg.add_argument("--trials", type=int, default=4)
+    cg.set_defaults(func=cmd_calibrate_gain)
 
     args = ap.parse_args(argv)
     return args.func(args)

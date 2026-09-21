@@ -1,0 +1,76 @@
+# =============================================================================
+# A MATRIX DAS MOSCAS - configuracao da interface sensorio-motora
+# =============================================================================
+# TODO ganho entre o mundo e os cerebros esta AQUI e em nenhum outro lugar.
+# Tudo neste arquivo e PREMISSA NOSSA (ver README, tabela real/premissa).
+# Cada mudanca feita para "ajudar" as moscas deve ser registrada no diario
+# como "intervencao do laboratorio" (historico ao final deste arquivo).
+#
+# Unidades: taxas em Hz por neuronio (entrada Poisson, como em Shiu 2024);
+# tempo em ms biologicos; distancias em cm de escala mosca.
+
+loop:
+  dt_ms: 15.0            # janela de acoplamento cerebro <-> mundo (Eon 2026 usa 15 ms)
+  rate_tau_ms: 75.0      # janela exponencial das taxas lidas (50-100 ms)
+  ignition_spikes_per_100ms: 10000   # acima disso o cerebro esta "em convulsao" (laco recorrente)
+
+brain:
+  eps_mv: 0.01           # limiar de desativacao (docs/F1_validacao/eps_sensitivity.json)
+  jitter_lognormal_sigma: 0.05   # individualidade: ganho sinaptico por neuronio ~ lognormal(0, 0.05)
+  global_gain:
+    female: 1.0          # FlyWire: constantes de Shiu foram ajustadas a ele
+    male: 1.0            # MaleCNS: medido em scripts/calibrate_gain.py (docs/F2_screen.md); premissa
+  kc_gain:
+    female: 1.0          # ganho extra nas entradas das celulas de Kenyon (fly-brain-minecraft usa 0.25)
+    male: 1.0
+  hunger_gain_default: 1.0   # multiplica as taxas de acucar/agua; por mosca, muda com o tempo sem comer
+
+# -----------------------------------------------------------------------------
+# ENTRADAS: quantidade do mundo (0..1 por lado) -> Hz por neuronio da populacao
+# rate = max_hz * valor^gamma, limitado a max_hz. Populacoes em brain/types.py.
+# max_hz abaixo do limiar de ignicao medido no SCREEN (docs/F2_screen.md).
+# -----------------------------------------------------------------------------
+sensory:
+  sugar:      {max_hz: 50, gamma: 1.0, sides: true,  note: "contato do labelo/pernas com acucar; F1: 62 LB3 a 100 Hz ignita, 50 Hz estavel"}
+  water:      {max_hz: 30, gamma: 1.0, sides: true,  note: "femea: mesmos GRNs LB3 do acucar (lacuna FlyWire), ganho menor"}
+  bitter:     {max_hz: 50, gamma: 1.0, sides: true,  note: "contato com superficie amarga"}
+  leg_grn:    {max_hz: 30, gamma: 1.0, sides: true,  note: "gustacao de perna (contato com superficies); nao e cerda"}
+  ppk23:      {max_hz: 40, gamma: 1.0, sides: true,  note: "SO MACHO: contato cuticular com outra mosca (feromonio de contato)"}
+  orn_dm1:    {max_hz: 40, gamma: 0.5, sides: true,  note: "odor de comida (Or42b); concentracao amostrada nas antenas E/D"}
+  orn_v:      {max_hz: 40, gamma: 0.5, sides: true,  note: "CO2 (Gr21a/Gr63a)"}
+  orn_da2:    {max_hz: 40, gamma: 0.5, sides: true,  note: "geosmina (Or56a)"}
+  orn_da1:    {max_hz: 40, gamma: 0.5, sides: true,  note: "cVA (Or67d): perfil de odor de macho proximo"}
+  orn_dl3:    {max_hz: 40, gamma: 0.5, sides: true,  note: "cVA (Or65a)"}
+  jo_a:       {max_hz: 40, gamma: 1.0, sides: true,  note: "cancao de corte de macho vizinho (vibracao de asa)"}
+  jo_b:       {max_hz: 40, gamma: 1.0, sides: true,  note: "cancao (JO-B)"}
+  jo_ce:      {max_hz: 40, gamma: 1.0, sides: true,  note: "poeira/toque na antena (Shiu: JO-CE -> grooming)"}
+  lc4:        {max_hz: 60, gamma: 1.0, sides: true,  note: "looming (robo/objeto se aproximando); breve"}
+  lplc2:      {max_hz: 60, gamma: 1.0, sides: true,  note: "looming"}
+  lc11:       {max_hz: 40, gamma: 1.0, sides: true,  note: "objeto pequeno em movimento (outra mosca)"}
+
+# -----------------------------------------------------------------------------
+# SAIDAS: Hz na populacao (janela exponencial) -> comando motor.
+# So entram no mundo os reflexos que o SCREEN mostrar que existem (F2).
+# -----------------------------------------------------------------------------
+motor:
+  forward:    {pops: [dnp09, odn1], gain_cm_s_per_hz: 0.02, max_cm_s: 2.0, note: "marcha: soma dos dois lados"}
+  turn:       {pops: [dna02, dna01], gain_rad_s_per_hz: 0.05, max_rad_s: 3.0, note: "giro = (esq - dir); positivo = vira para a esquerda"}
+  feed:       {pops: [MN9], threshold_hz: 20, note: "extensao da proboscide: comendo se acima do limiar"}
+  groom:      {pops: [adn], threshold_hz: 10, note: "candidato comunitario (DNge078); confirmar no SCREEN"}
+  backward:   {pops: [mdn], threshold_hz: 10, gain_cm_s_per_hz: 0.02}
+  halt:       {pops: [halt], threshold_hz: 10, note: "candidatos comunitarios; confirmar no SCREEN"}
+  jump:       {pops: [gf], threshold_hz: 5, impulse_cm_s: 8.0, note: "fibra gigante: salto na direcao oposta ao looming"}
+  court:      {pops: [p1], threshold_hz: 5, note: "SO MACHO: segue a femea + canta"}
+  song:       {pops: [pip10, vpr6], threshold_hz: 5, note: "SO MACHO: vibracao de asa"}
+  aggression_male:   {pops: [tk], threshold_hz: 5}
+  aggression_female: {pops: [aipg], threshold_hz: 5}
+  accept:     {pops: [vpodn], threshold_hz: 5, note: "SO FEMEA: abertura da placa vaginal"}
+  reject:     {pops: [dnp13], threshold_hz: 5, note: "SO FEMEA: extrusao do ovipositor"}
+
+# -----------------------------------------------------------------------------
+# Historico de intervencoes do laboratorio (data, o que, por que)
+# -----------------------------------------------------------------------------
+interventions:
+  - date: 2026-09-21
+    what: "sugar.max_hz = 50 (nao 100) e demais entradas 30-60 Hz"
+    why: "F1: 62 GRNs de acucar a 100 Hz ignitam o laco AL/MB em 5/5 trials; a 50 Hz estavel"

@@ -24,6 +24,10 @@ FLYWIRE_LABELS = {
     "orn_dl3": ("type", ["ORN_DL3"], False),
     "jo_a": ("type", ["JO-A"], True),
     "jo_b": ("type", ["JO-B"], True),
+    "jo_ce": ("type", ["JO-C", "JO-E"], True),          # mecanossensorial (poeira/toque na antena; Shiu: JO-CE -> grooming)
+    "kc": ("cell_class", ["Kenyon_Cell"], False),        # so para ganho opcional (nao e entrada nem saida)
+    "jo_ce": ("type", ["JO-C", "JO-E"], True),          # mecanossensorial (poeira/toque na antena; Shiu: JO-CE -> grooming)
+    "kc": ("cell_class", ["Kenyon_Cell"], False),        # so para ganho opcional (nao e entrada nem saida)
     "lc4": ("type", ["LC4"], False),
     "lplc2": ("type", ["LPLC2"], False),
     "lc11": ("type", ["LC11"], False),
@@ -35,6 +39,7 @@ FLYWIRE_LABELS = {
     "dna02": ("type", ["DNa02"], False),
     "mdn": ("type", ["MDN"], False),
     "adn": ("type", ["DNge078"], False),                # "putative aDN 2" (candidato)
+    "halt": ("type", ["DNg60", "CB0890"], False),        # candidatos comunitarios Bluebell/Foxglove (Sapkal 2024)
     "pc1": ("type", ["pC1a", "pC1b", "pC1c", "pC1d", "pC1e"], False),
     "aipg": ("hemibrain_type", ["aIPg1", "aIPg2", "aIPg3", "aIPg4"], False),
     "vpodn": ("hemibrain_type", ["vpoDN"], False),
@@ -56,6 +61,8 @@ MALECNS_LABELS = {
     "orn_dl3": ("type", ["ORN_DL3"], False),
     "jo_a": ("type", ["JO-A"], True),
     "jo_b": ("type", ["JO-B"], True),
+    "jo_ce": ("type", ["JO-C", "JO-E"], True),
+    "kc": ("cell_class", ["Kenyon_Cell"], False),
     "lc4": ("type", ["LC4"], False),
     "lplc2": ("type", ["LPLC2"], False),
     "lc11": ("type", ["LC11"], False),
@@ -67,6 +74,7 @@ MALECNS_LABELS = {
     "dna02": ("type", ["DNa02"], False),
     "mdn": ("type", ["MDN"], False),
     "adn": ("type", ["DNge078"], False),
+    "halt": ("type", ["DNg60"], False),                  # Bluebell (comunitario); Foxglove CB0890 ausente no macho
     "p1": ("type", ["pC1_"], True),
     "pc1": ("type", ["pC1x_b", "pC1x_c"], False),
     "aipg": ("type", ["aIPg"], True),
@@ -81,8 +89,8 @@ MALECNS_LABELS = {
 
 # Quais populacoes sao entradas sensoriais e quais sao leituras motoras/sociais
 INPUTS = ["sugar", "water", "bitter", "leg_grn", "ppk23", "orn_dm1", "orn_v", "orn_da2", "orn_da1", "orn_dl3",
-          "jo_a", "jo_b", "lc4", "lplc2", "lc11"]
-OUTPUTS = ["MN9", "gf", "dnp09", "odn1", "dna01", "dna02", "mdn", "adn", "pc1", "p1", "aipg", "tk", "pip10",
+          "jo_a", "jo_b", "jo_ce", "lc4", "lplc2", "lc11"]
+OUTPUTS = ["MN9", "gf", "dnp09", "odn1", "dna01", "dna02", "mdn", "adn", "halt", "pc1", "p1", "aipg", "tk", "pip10",
            "vpr6", "vpodn", "dnp13", "asp22", "da1_lpn"]
 
 
