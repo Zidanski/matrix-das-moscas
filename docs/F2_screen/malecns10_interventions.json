@@ -1,0 +1,79 @@
+[
+  {
+    "intervention": "nenhuma",
+    "orn_dm1_ign": 2,
+    "orn_dm1_spikes": 5315.0,
+    "orn_da1_ign": 2,
+    "orn_da1_spikes": 2674.5,
+    "sugar_ign": 1,
+    "sugar_spikes": 17144.5,
+    "sugar_MN9_hz": 3.7090161695689874,
+    "wall_s": 22.447627544403076
+  },
+  {
+    "intervention": "dopamina_0",
+    "orn_dm1_ign": 2,
+    "orn_dm1_spikes": 5129.5,
+    "orn_da1_ign": 2,
+    "orn_da1_spikes": 2668.0,
+    "sugar_ign": 0,
+    "sugar_spikes": 15724.5,
+    "sugar_MN9_hz": 25.272372601130712,
+    "wall_s": 30.52294087409973
+  },
+  {
+    "intervention": "monoaminas_0",
+    "orn_dm1_ign": 2,
+    "orn_dm1_spikes": 5047.5,
+    "orn_da1_ign": 2,
+    "orn_da1_spikes": 2650.5,
+    "sugar_ign": 0,
+    "sugar_spikes": 9828.0,
+    "sugar_MN9_hz": 33.20761883617692,
+    "wall_s": 25.407646417617798
+  },
+  {
+    "intervention": "kc_0.25",
+    "orn_dm1_ign": 2,
+    "orn_dm1_spikes": 3993.0,
+    "orn_da1_ign": 2,
+    "orn_da1_spikes": 2595.5,
+    "sugar_ign": 1,
+    "sugar_spikes": 17144.5,
+    "sugar_MN9_hz": 3.7090161695689874,
+    "wall_s": 25.623865365982056
+  },
+  {
+    "intervention": "dopamina_0+kc_0.25",
+    "orn_dm1_ign": 2,
+    "orn_dm1_spikes": 3981.5,
+    "orn_da1_ign": 2,
+    "orn_da1_spikes": 2589.5,
+    "sugar_ign": 0,
+    "sugar_spikes": 15724.5,
+    "sugar_MN9_hz": 25.272372601130712,
+    "wall_s": 30.446946144104004
+  },
+  {
+    "intervention": "global_0.7",
+    "orn_dm1_ign": 2,
+    "orn_dm1_spikes": 2297.0,
+    "orn_da1_ign": 2,
+    "orn_da1_spikes": 4508.0,
+    "sugar_ign": 0,
+    "sugar_spikes": 1793.5,
+    "sugar_MN9_hz": 3.135075755512946,
+    "wall_s": 13.229633331298828
+  },
+  {
+    "intervention": "dopamina_0+global_0.85",
+    "orn_dm1_ign": 2,
+    "orn_dm1_spikes": 3469.0,
+    "orn_da1_ign": 2,
+    "orn_da1_spikes": 1727.0,
+    "sugar_ign": 0,
+    "sugar_spikes": 6558.0,
+    "sugar_MN9_hz": 7.864083586248683,
+    "wall_s": 15.837935447692871
+  }
+]

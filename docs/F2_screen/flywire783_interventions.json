@@ -1,0 +1,79 @@
+[
+  {
+    "intervention": "nenhuma",
+    "orn_dm1_ign": 3,
+    "orn_dm1_spikes": 2949.3333333333335,
+    "orn_da1_ign": 3,
+    "orn_da1_spikes": 4523.666666666667,
+    "sugar_ign": 0,
+    "sugar_spikes": 4258.666666666667,
+    "sugar_MN9_hz": 12.1743706317736,
+    "wall_s": 18.693143844604492
+  },
+  {
+    "intervention": "dopamina_0",
+    "orn_dm1_ign": 3,
+    "orn_dm1_spikes": 2540.6666666666665,
+    "orn_da1_ign": 3,
+    "orn_da1_spikes": 4033.0,
+    "sugar_ign": 0,
+    "sugar_spikes": 4245.666666666667,
+    "sugar_MN9_hz": 10.502963625858522,
+    "wall_s": 17.32071328163147
+  },
+  {
+    "intervention": "monoaminas_0",
+    "orn_dm1_ign": 3,
+    "orn_dm1_spikes": 3403.0,
+    "orn_da1_ign": 3,
+    "orn_da1_spikes": 3819.0,
+    "sugar_ign": 0,
+    "sugar_spikes": 3547.3333333333335,
+    "sugar_MN9_hz": 0.0,
+    "wall_s": 19.948596477508545
+  },
+  {
+    "intervention": "kc_0.25",
+    "orn_dm1_ign": 3,
+    "orn_dm1_spikes": 2507.3333333333335,
+    "orn_da1_ign": 3,
+    "orn_da1_spikes": 3618.3333333333335,
+    "sugar_ign": 0,
+    "sugar_spikes": 4258.666666666667,
+    "sugar_MN9_hz": 12.1743706317736,
+    "wall_s": 25.68932580947876
+  },
+  {
+    "intervention": "dopamina_0+kc_0.25",
+    "orn_dm1_ign": 3,
+    "orn_dm1_spikes": 2285.0,
+    "orn_da1_ign": 3,
+    "orn_da1_spikes": 3360.6666666666665,
+    "sugar_ign": 0,
+    "sugar_spikes": 4245.666666666667,
+    "sugar_MN9_hz": 10.502963625858522,
+    "wall_s": 24.551817893981934
+  },
+  {
+    "intervention": "global_0.7",
+    "orn_dm1_ign": 3,
+    "orn_dm1_spikes": 3929.6666666666665,
+    "orn_da1_ign": 3,
+    "orn_da1_spikes": 3337.3333333333335,
+    "sugar_ign": 0,
+    "sugar_spikes": 3349.0,
+    "sugar_MN9_hz": 0.0,
+    "wall_s": 16.32733702659607
+  },
+  {
+    "intervention": "dopamina_0+global_0.85",
+    "orn_dm1_ign": 3,
+    "orn_dm1_spikes": 2909.3333333333335,
+    "orn_da1_ign": 3,
+    "orn_da1_spikes": 3181.3333333333335,
+    "sugar_ign": 0,
+    "sugar_spikes": 3573.6666666666665,
+    "sugar_MN9_hz": 0.0,
+    "wall_s": 16.871012449264526
+  }
+]

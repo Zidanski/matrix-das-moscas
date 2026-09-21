@@ -7,5 +7,68 @@
     "MN9_hz": 7.210568393296564,
     "spikes_per_s": 14506.5,
     "wall_s": 26.7158465385437
+  },
+  {
+    "gain": 0.85,
+    "kc_gain": 1.0,
+    "ignited": 1,
+    "trials": 4,
+    "MN9_hz": 6.1103392323558205,
+    "spikes_per_s": 4663.0,
+    "wall_s": 19.56014895439148
+  },
+  {
+    "gain": 0.7,
+    "kc_gain": 1.0,
+    "ignited": 0,
+    "trials": 4,
+    "MN9_hz": 1.736880517454808,
+    "spikes_per_s": 1772.75,
+    "wall_s": 10.50968623161316
+  },
+  {
+    "gain": 0.55,
+    "kc_gain": 1.0,
+    "ignited": 0,
+    "trials": 4,
+    "MN9_hz": 0.0006216506703646819,
+    "spikes_per_s": 1308.25,
+    "wall_s": 9.063959121704102
+  },
+  {
+    "gain": 0.4,
+    "kc_gain": 1.0,
+    "ignited": 0,
+    "trials": 4,
+    "MN9_hz": 0.0,
+    "spikes_per_s": 1011.25,
+    "wall_s": 8.758588314056396
+  },
+  {
+    "gain": 1.0,
+    "kc_gain": 0.25,
+    "ignited": 2,
+    "trials": 4,
+    "MN9_hz": 7.210568393296564,
+    "spikes_per_s": 14506.5,
+    "wall_s": 42.09999060630798
+  },
+  {
+    "gain": 0.85,
+    "kc_gain": 0.25,
+    "ignited": 1,
+    "trials": 4,
+    "MN9_hz": 6.1103392323558205,
+    "spikes_per_s": 4544.25,
+    "wall_s": 25.444355726242065
+  },
+  {
+    "gain": 0.7,
+    "kc_gain": 0.25,
+    "ignited": 0,
+    "trials": 4,
+    "MN9_hz": 1.736880517454808,
+    "spikes_per_s": 1772.75,
+    "wall_s": 18.634407997131348
   }
 ]

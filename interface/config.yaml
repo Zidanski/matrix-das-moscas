@@ -24,6 +24,16 @@ brain:
     female: 1.0          # ganho extra nas entradas das celulas de Kenyon (fly-brain-minecraft usa 0.25)
     male: 1.0
   hunger_gain_default: 1.0   # multiplica as taxas de acucar/agua; por mosca, muda com o tempo sem comer
+  presyn_gain:           # ganho nas SAIDAS de neuronios pre-sinapticos, por neurotransmissor ou prefixo de tipo
+    female: {nt: {}, type_prefix: {}}
+    male:   {nt: {dopamine: 0.0, octopamine: 0.0, serotonin: 0.0}, type_prefix: {}}   # macho: monoaminas sem efeito rapido (como Kisame76); ver intervencoes
+  sign_override:         # correcao de sinal (PREMISSA): classe -> sinal forcado nas saidas
+    # Neuronios locais do lobo antenal (ALLN) sao GABA/glutamato na literatura; a previsao
+    # de NT marca 39 % deles (femea) e 33 % (macho) como ACh/DA/5-HT -> excitatorios, o que
+    # cria um laco ORN->LN->ORN que ignita com olfato a 5-10 Hz. Eckstein 2024 cita
+    # exatamente essa classe como mal prevista. Forcamos inibitorio. Ver docs/F2_screen.md.
+    female: [{cell_class: ALLN, sign: -1}]
+    male:   [{cell_class: ALLN, sign: -1}]
 
 # -----------------------------------------------------------------------------
 # ENTRADAS: quantidade do mundo (0..1 por lado) -> Hz por neuronio da populacao
@@ -74,3 +84,9 @@ interventions:
   - date: 2026-09-21
     what: "sugar.max_hz = 50 (nao 100) e demais entradas 30-60 Hz"
     why: "F1: 62 GRNs de acucar a 100 Hz ignitam o laco AL/MB em 5/5 trials; a 50 Hz estavel"
+  - date: 2026-09-21
+    what: "sign_override ALLN -> inibitorio nos dois sexos"
+    why: "F2: ORN_DM1 a 5 Hz ignitava a femea; com a correcao, olfato estavel ate 80 Hz e acucar->MN9 preservado"
+  - date: 2026-09-21
+    what: "macho: presyn_gain dopamina/octopamina/serotonina = 0"
+    why: "F2: no MaleCNS o acucar a 50 Hz ignitava em 1/2 trials com MN9 3,5 Hz; com monoaminas sem saida rapida, 0/2 e MN9 33 Hz. Na femea a mesma regra mata acucar->MN9, entao nao se aplica"

@@ -1,0 +1,130 @@
+[
+  {
+    "input": "sugar",
+    "n_R": 17,
+    "first_igniting_hz": 20,
+    "max_stable_hz": 10,
+    "config_max_hz": 50,
+    "wall_s": 17.36999249458313
+  },
+  {
+    "input": "water",
+    "n_R": 8,
+    "first_igniting_hz": null,
+    "max_stable_hz": 80,
+    "config_max_hz": 30,
+    "wall_s": 18.667715787887573
+  },
+  {
+    "input": "bitter",
+    "n_R": 27,
+    "first_igniting_hz": 40,
+    "max_stable_hz": 30,
+    "config_max_hz": 50,
+    "wall_s": 13.8582284450531
+  },
+  {
+    "input": "leg_grn",
+    "n_R": 338,
+    "first_igniting_hz": 10,
+    "max_stable_hz": 0,
+    "config_max_hz": 30,
+    "wall_s": 3.8051044940948486
+  },
+  {
+    "input": "ppk23",
+    "n_R": 32,
+    "first_igniting_hz": null,
+    "max_stable_hz": 80,
+    "config_max_hz": 40,
+    "wall_s": 19.39921736717224
+  },
+  {
+    "input": "orn_dm1",
+    "n_R": 39,
+    "first_igniting_hz": 10,
+    "max_stable_hz": 0,
+    "config_max_hz": 40,
+    "wall_s": 2.971637487411499
+  },
+  {
+    "input": "orn_v",
+    "n_R": 39,
+    "first_igniting_hz": 10,
+    "max_stable_hz": 0,
+    "config_max_hz": 40,
+    "wall_s": 2.9114623069763184
+  },
+  {
+    "input": "orn_da2",
+    "n_R": 20,
+    "first_igniting_hz": 20,
+    "max_stable_hz": 10,
+    "config_max_hz": 40,
+    "wall_s": 5.039336204528809
+  },
+  {
+    "input": "orn_da1",
+    "n_R": 105,
+    "first_igniting_hz": 10,
+    "max_stable_hz": 0,
+    "config_max_hz": 40,
+    "wall_s": 2.8953158855438232
+  },
+  {
+    "input": "orn_dl3",
+    "n_R": 31,
+    "first_igniting_hz": 10,
+    "max_stable_hz": 0,
+    "config_max_hz": 40,
+    "wall_s": 2.59208083152771
+  },
+  {
+    "input": "jo_a",
+    "n_R": 32,
+    "first_igniting_hz": null,
+    "max_stable_hz": 80,
+    "config_max_hz": 40,
+    "wall_s": 16.456327199935913
+  },
+  {
+    "input": "jo_b",
+    "n_R": 29,
+    "first_igniting_hz": null,
+    "max_stable_hz": 80,
+    "config_max_hz": 40,
+    "wall_s": 16.39100480079651
+  },
+  {
+    "input": "jo_ce",
+    "n_R": 132,
+    "first_igniting_hz": 10,
+    "max_stable_hz": 0,
+    "config_max_hz": 40,
+    "wall_s": 4.97485876083374
+  },
+  {
+    "input": "lc4",
+    "n_R": 55,
+    "first_igniting_hz": 10,
+    "max_stable_hz": 0,
+    "config_max_hz": 60,
+    "wall_s": 16.172252416610718
+  },
+  {
+    "input": "lplc2",
+    "n_R": 91,
+    "first_igniting_hz": 20,
+    "max_stable_hz": 10,
+    "config_max_hz": 60,
+    "wall_s": 18.051777124404907
+  },
+  {
+    "input": "lc11",
+    "n_R": 75,
+    "first_igniting_hz": 30,
+    "max_stable_hz": 20,
+    "config_max_hz": 40,
+    "wall_s": 26.21801209449768
+  }
+]

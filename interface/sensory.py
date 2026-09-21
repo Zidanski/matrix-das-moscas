@@ -3,7 +3,8 @@
 Entrada: `SensoryState`, um dicionario {nome_da_populacao: (esq, dir)} com
 valores em [0, 1] (0 = nada; 1 = estimulo maximo). Saida: (indices, taxas Hz).
 
-Regras (config.yaml): rate = max_hz * clip(valor, 0, 1) ** gamma.
+Regras (config.yaml): rate = max_hz * clip(valor, 0, 1) ** gamma; max_hz pode
+ser um numero ou {female: X, male: Y} (limiares de ignicao diferem por sexo).
 Populacoes sem lado anotado ('?') recebem a media dos dois lados.
 Populacoes ausentes no conectoma (ex.: ppk23 na femea) sao ignoradas e
 listadas em `missing` - lacuna documentada, nunca inventada.
@@ -48,7 +49,10 @@ class SensoryEncoder:
     def rates_for(self, name: str, left: float, right: float) -> tuple[np.ndarray, np.ndarray]:
         c = self.cfg["sensory"][name]
         g = float(c.get("gamma", 1.0))
-        mx = float(c["max_hz"])
+        mx = c["max_hz"]
+        if isinstance(mx, dict):   # maximo por sexo: {female: X, male: Y}
+            mx = mx[self.pack.meta.get("sex", "female")]
+        mx = float(mx)
         if name in ("sugar", "water"):
             mx *= self.hunger_gain
         rl = mx * float(np.clip(left, 0, 1)) ** g

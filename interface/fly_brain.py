@@ -32,6 +32,44 @@ class FlyIdentity:
     control: bool = False   # conectoma embaralhado
 
 
+def make_pre_gain(pack: ConnectomePack, sex: str, cfg: dict) -> np.ndarray:
+    """Ganho por neuronio PRE-sinaptico: por neurotransmissor (ex.: dopamina 0 =
+    neuromoduladores sem efeito excitatorio rapido) e por rotulo de tipo."""
+    pre = np.ones(pack.n, dtype=np.float64)
+    spec = cfg["brain"].get("presyn_gain", {}).get(sex, {}) or {}
+    nt = pack.neurons["nt"].astype("string").fillna("").str.lower().to_numpy().astype(str) if "nt" in pack.neurons else np.full(pack.n, "", dtype=str)
+    for name, g in (spec.get("nt", {}) or {}).items():
+        pre[nt == name.lower()] *= float(g)
+    for label, g in (spec.get("type_prefix", {}) or {}).items():
+        pre[pack.select([label], None, startswith=True)] *= float(g)
+    # correcao de sinal por classe/tipo (ex.: ALLN inibitorio): inverte o sinal das
+    # saidas dos neuronios cujo sinal previsto difere do desejado
+    rules = cfg["brain"].get("sign_override", {}).get(sex, []) or []
+    if rules:
+        cur = current_sign(pack)
+        for rule in rules:
+            want = int(rule["sign"])
+            if "cell_class" in rule:
+                m = (pack.neurons["cell_class"].astype("string").fillna("") == rule["cell_class"]).to_numpy()
+            else:
+                m = np.zeros(pack.n, dtype=bool)
+                m[pack.select([rule["type_prefix"]], None, startswith=True)] = True
+            flip = m & (cur != 0) & (cur != want)
+            pre[flip] *= -1.0
+    return pre
+
+
+def current_sign(pack: ConnectomePack) -> np.ndarray:
+    """Sinal efetivo de cada neuronio nas arestas do pacote (0 = sem saidas)."""
+    ip = np.asarray(pack.indptr)
+    w = np.asarray(pack.weights)
+    has = ip[1:] > ip[:-1]
+    first = np.where(has, ip[:-1], 0)
+    s = np.sign(w[first]).astype(np.int8)
+    s[~has] = 0
+    return s
+
+
 def make_gain(pack: ConnectomePack, sex: str, cfg: dict, seed: int) -> np.ndarray:
     rng = np.random.default_rng(seed)
     sigma = float(cfg["brain"]["jitter_lognormal_sigma"])
@@ -52,7 +90,8 @@ class FlyBrain:
         self.pack = pack
         self.dt_ms = float(self.cfg["loop"]["dt_ms"])
         self.engine = LIFEngine(pack, seed=identity.seed, gain=make_gain(pack, identity.sex, self.cfg, identity.seed),
-                                eps_mv=float(self.cfg["brain"]["eps_mv"]), chunk_steps=int(round(self.dt_ms / 0.1)))
+                                eps_mv=float(self.cfg["brain"]["eps_mv"]), chunk_steps=int(round(self.dt_ms / 0.1)),
+                                pre_gain=make_pre_gain(pack, identity.sex, self.cfg))
         self.encoder = SensoryEncoder(pack, self.cfg, hunger_gain=identity.hunger_gain)
         self.decoder = MotorDecoder(pack, self.cfg, identity.sex, enabled_reflexes)
         self.ignited = False

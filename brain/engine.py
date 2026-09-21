@@ -47,7 +47,7 @@ def _seed(seed):
 def _run_chunk(n_steps, step0,
                v, g, rfc_end, active, act_list, n_act_arr,
                ring, ring_n,
-               indptr, indices, weights, gain, w_syn,
+               indptr, indices, weights, gain, pre_gain, w_syn,
                poi_idx, poi_p, poi_w,
                ext_step, ext_idx, ext_w, ext_ptr_arr,
                out_idx, out_step, out_n_arr, counts,
@@ -104,11 +104,14 @@ def _run_chunk(n_steps, step0,
         slot = step % nslots
         for k in range(ring_n[slot]):
             i = ring[slot, k]
+            wi = w_syn * pre_gain[i]
+            if wi == 0.0:
+                continue
             for e in range(indptr[i], indptr[i + 1]):
                 j = indices[e]
                 if step < rfc_end[j]:
                     continue  # refratario: escrita descartada (semantica 'unless refractory' do Brian2)
-                g[j] += weights[e] * w_syn * gain[j]
+                g[j] += weights[e] * wi * gain[j]
                 if active[j] == 0:
                     active[j] = 1
                     act_list[n_act] = j
@@ -164,7 +167,8 @@ class LIFEngine:
     """Um cerebro. Estado persistente entre chamadas de run()."""
 
     def __init__(self, pack: ConnectomePack, params: LIFParams = SHIU, seed: int = 0,
-                 gain: np.ndarray | None = None, eps_mv: float = 1e-2, chunk_steps: int = 150):
+                 gain: np.ndarray | None = None, eps_mv: float = 1e-2, chunk_steps: int = 150,
+                 pre_gain: np.ndarray | None = None):
         self.pack = pack
         self.p = params
         self.n = pack.n
@@ -173,6 +177,9 @@ class LIFEngine:
         self.chunk_steps = int(chunk_steps)
         self.gain = np.ones(self.n, dtype=np.float64) if gain is None else np.asarray(gain, dtype=np.float64)
         assert self.gain.shape == (self.n,)
+        # ganho por neuronio PRE-sinaptico (multiplica todas as suas saidas); 0 = silencia as saidas
+        self.pre_gain = np.ones(self.n, dtype=np.float64) if pre_gain is None else np.asarray(pre_gain, dtype=np.float64)
+        assert self.pre_gain.shape == (self.n,)
         self.indptr = np.ascontiguousarray(pack.indptr, dtype=np.int64)
         self.indices = np.ascontiguousarray(pack.indices, dtype=np.int32)
         self.weights = np.ascontiguousarray(pack.weights, dtype=np.int16)
@@ -238,7 +245,7 @@ class LIFEngine:
             os_ = np.empty(cap, dtype=np.int64)
             on = np.zeros(1, dtype=np.int64)
             _run_chunk(k, self.step, self.v, self.g, self.rfc_end, self.active, self.act_list, self.n_act,
-                       self.ring, self.ring_n, self.indptr, self.indices, self.weights, self.gain,
+                       self.ring, self.ring_n, self.indptr, self.indices, self.weights, self.gain, self.pre_gain,
                        self.p.w_syn_mv, self.poi_idx, self.poi_p, self.poi_w,
                        self.ext_step, self.ext_idx, self.ext_w, self.ext_ptr,
                        oi, os_, on, self.counts,
