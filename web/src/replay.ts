@@ -5,13 +5,16 @@ export interface Manifest {
   world: any; dt_s: number; seconds: number; ticks: number; n_flies: number; n_spheres: number;
   fields: string[]; flies: FlyInfo[]; spheres: any[]; cubes: any[]; prisms: any[]; patches: any[]; water: any[];
   state_ids: Record<string, number>; metrics?: any; brain_mode: string; day_index?: number; wall_s?: number;
+  robots?: { name: string; level: string; route: number[][]; r: number; night_only: boolean }[]; n_robots?: number;
+  world_row_len?: number; robot_fields?: string[]; lab_fields?: string[]; level_ids?: Record<string, number>;
+  diary?: string; secrets?: any;
 }
 export interface ReplayEvent { t: number; kind: string; flies: string[]; [k: string]: any; }
 
 export class Replay {
   fi: Record<string, number> = {};
   stateNames: Record<number, string> = {};
-  constructor(public manifest: Manifest, public frames: Float32Array, public objects: Float32Array, public events: ReplayEvent[]) {
+  constructor(public manifest: Manifest, public frames: Float32Array, public objects: Float32Array, public events: ReplayEvent[], public world: Float32Array = new Float32Array(0)) {
     manifest.fields.forEach((f, i) => (this.fi[f] = i));
     for (const [k, v] of Object.entries(manifest.state_ids)) this.stateNames[v] = k;
   }
@@ -23,6 +26,18 @@ export class Replay {
     const o = (tick * this.manifest.n_spheres + i) * 2;
     return [this.objects[o], this.objects[o + 1]];
   }
+  get rowLen() { return this.manifest.world_row_len ?? 0; }
+  robot(tick: number, i: number): { x: number; y: number; lab: boolean; state: number } {
+    const o = tick * this.rowLen + i * 4;
+    return { x: this.world[o], y: this.world[o + 1], lab: this.world[o + 2] > 0.5, state: this.world[o + 3] };
+  }
+  labState(tick: number): { door: boolean; hatch: boolean; genOff: boolean; elevator: boolean } {
+    const nr = this.manifest.n_robots ?? 0;
+    const o = tick * this.rowLen + nr * 4;
+    if (!this.rowLen) return { door: false, hatch: false, genOff: false, elevator: false };
+    return { door: this.world[o] > 0.5, hatch: this.world[o + 1] > 0.5, genOff: this.world[o + 2] > 0.5, elevator: this.world[o + 3] > 0.5 };
+  }
+  level(tick: number, fly: number): number { return this.fi["level"] !== undefined ? this.get(tick, fly, "level") : 0; }
 }
 
 export async function listRuns(): Promise<string[]> {
@@ -49,5 +64,7 @@ export async function loadReplay(dir: string): Promise<Replay> {
     fetch(`/runs/${dir}/objects.bin`).then((r) => r.arrayBuffer()),
     fetch(`/runs/${dir}/events.json`).then((r) => r.json()),
   ]);
-  return new Replay(m, new Float32Array(fb), new Float32Array(ob), ev);
+  let wb = new ArrayBuffer(0);
+  if (m.world_row_len) { const r = await fetch(`/runs/${dir}/world.bin`); if (r.ok) wb = await r.arrayBuffer(); }
+  return new Replay(m, new Float32Array(fb), new Float32Array(ob), ev, new Float32Array(wb));
 }

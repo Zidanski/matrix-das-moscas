@@ -51,6 +51,8 @@ async function open(dir: string) {
   scrub.oninput = () => { tick = +scrub.value; draw(); };
   buildFlyPanel();
   buildEventMarkers();
+  const diary = $<HTMLDivElement>("diary");
+  diary.innerHTML = replay.manifest.diary ? "<pre>" + replay.manifest.diary.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string)) + "</pre>" : "<i>sem diário neste replay</i>";
   $("load").style.display = "none";
   draw();
 }
@@ -68,17 +70,20 @@ function buildFlyPanel() {
   });
 }
 
-const EVENT_COLORS: Record<string, string> = { encontro: "#f4a261", salto: "#e63946", presa_na_agua: "#4cc9f0", resgate_da_agua: "#7ee787", esfera_empurrada: "#ffd166", estado: "#ffffff22" };
+const EVENT_COLORS: Record<string, string> = { encontro: "#f4a261", salto: "#e63946", presa_na_agua: "#4cc9f0", resgate_da_agua: "#7ee787", esfera_empurrada: "#ffd166", estado: "#ffffff22",
+  entrou_no_lab: "#c77dff", afundou: "#4cc9f0", captura: "#ff3b3b", soltura: "#adb5bd", robo_persegue: "#ff7b54", segredo_quase: "#ffd166", segredo_disparado: "#00ff88", fuga: "#ffffff" };
 function buildEventMarkers() {
   const div = $("events");
   div.innerHTML = "";
   const T = replay!.manifest.seconds;
   for (const e of replay!.events) {
     if (e.kind === "estado") continue;
+    if (e.kind === "robo_persegue" && Math.random() > 0.3) continue;   // muitos: amostra
     const s = document.createElement("span");
     s.style.left = `${(e.t / T) * 100}%`;
     s.style.background = EVENT_COLORS[e.kind] ?? "#fff";
-    s.title = `${e.t.toFixed(1)} s ${e.kind} ${e.flies.join(", ")}`;
+    if (e.kind === "segredo_disparado" || e.kind === "fuga") { s.style.height = "22px"; s.style.width = "4px"; }
+    s.title = `${e.t.toFixed(1)} s ${e.kind}${e.secret ? " " + e.secret : ""} ${e.flies.join(", ")}`;
     div.appendChild(s);
   }
 }
@@ -91,13 +96,22 @@ function draw() {
   const light = 0.5 + 0.5 * Math.cos((2 * Math.PI * t) / m.world.arena.day_length_s);
   world.setLight(light);
   for (let i = 0; i < m.n_spheres; i++) { const [x, y] = replay.sphere(k, i); world.setSphere(i, x, y, m.spheres[i].r); }
+  if (replay.rowLen) {
+    world.robots.forEach((rm, i) => { const r = replay!.robot(k, i); rm.update(r.x, r.y, r.lab, r.state, world!.height, t); });
+    const ls = replay.labState(k);
+    world.setLab(ls.door, ls.hatch, ls.genOff, ls.elevator);
+  }
+  let anyUnder = false;
   const sel = $<HTMLDivElement>("hudbody");
   let selPos = new THREE.Vector3();
   world.flies.forEach((fm, i) => {
     const x = replay!.get(k, i, "x"), y = replay!.get(k, i, "y");
     const heading = replay!.get(k, i, "heading");
     const state = replay!.stateNames[replay!.get(k, i, "state")] ?? "?";
-    const pos = world!.toThree(x, y, 0);
+    const lvl = replay!.level(k, i);
+    const pos = lvl === 1 ? new THREE.Vector3(x, -world!.labDepth, -y) : world!.toThree(x, y, 0);
+    fm.group.visible = lvl !== 2;
+    if (lvl === 1) anyUnder = true;
     fm.update(pos, heading, state, t, Math.abs(replay!.get(k, i, "v")) > 0.05);
     const md = mood(replay!, k, i);
     const th = thoughts(replay!, k, i);
@@ -115,10 +129,15 @@ function draw() {
         (replay!.get(k, i, "ignited") > 0 ? ' · <b style="color:#e63946">CONVULSÃO</b>' : "") + "<br>" +
         `gosta de: ${lk.length ? lk.join(", ") : "ainda não se sabe"}<br>` +
         `<span class="muted">Hz: ${rates}</span><br>` +
-        `<span class="muted">${m.brain_mode === "full" ? "cérebro completo" : "cérebro reduzido"} · luz ${(light * 100).toFixed(0)} % · dia ${m.day_index ?? 0}</span>`;
+        `<span class="muted">${m.brain_mode === "full" ? "cérebro completo" : "cérebro reduzido"} · luz ${(light * 100).toFixed(0)} % · dia ${m.day_index ?? 0}${lvl === 1 ? " · <b style=\"color:#c77dff\">NO LABORATÓRIO</b>" : lvl === 2 ? " · <b>FUGIU</b>" : ""}</span>`;
     }
   });
-  if (camMode === "follow") {
+  world.setUnderground(anyUnder || camMode === "security");
+  if (camMode === "security") {
+    const lab = m.world.lab; const [x0, , x1, y1] = lab.bounds;
+    camera.position.lerp(new THREE.Vector3((x0 + x1) / 2 + 6, -world.labDepth + 9, -(y1 - 1) + 14), 0.1);
+    controls.target.lerp(new THREE.Vector3((x0 + x1) / 2, -world.labDepth, 0), 0.2);
+  } else if (camMode === "follow") {
     const goal = selPos.clone().add(new THREE.Vector3(-4, 3, 4));
     camera.position.lerp(goal, 0.08);
     controls.target.lerp(selPos, 0.2);
@@ -148,6 +167,7 @@ function loop() {
 $("play").onclick = () => { playing = !playing; $("play").textContent = playing ? "❚❚" : "▶"; if (replay && tick >= replay.manifest.ticks - 1) tick = 0; };
 $<HTMLSelectElement>("speed").onchange = (e) => (speed = +(e.target as HTMLSelectElement).value);
 $<HTMLSelectElement>("cam").onchange = (e) => (camMode = (e.target as HTMLSelectElement).value);
+$("diarybtn").onclick = () => { const d = $("diary"); d.style.display = d.style.display === "block" ? "none" : "block"; };
 addEventListener("keydown", (e) => { if (e.code === "Space") { e.preventDefault(); $("play").click(); } });
 
 boot();

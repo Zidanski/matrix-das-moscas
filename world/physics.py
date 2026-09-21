@@ -11,6 +11,7 @@ import math
 from dataclasses import dataclass, field
 
 from .geometry import Terrain, Objects, Sphere, wrap_angle
+from .lab import Lab
 
 
 @dataclass
@@ -34,22 +35,33 @@ class FlyBody:
     contacts: list = field(default_factory=list)   # o que tocou neste tick (nomes)
     on_surface: str = "none"                       # sugar|bitter|water|none (o que pisa/toca)
     idx: int = 0
+    level: str = "surface"                         # surface | lab | fora (fugiu)
+    stuck_since: float = -1.0
+    time_in_lab: float = 0.0
+    captures: int = 0
 
 
 class Physics:
-    def __init__(self, cfg: dict, terrain: Terrain, objects: Objects):
+    def __init__(self, cfg: dict, terrain: Terrain, objects: Objects, lab: Lab | None = None):
         self.cfg = cfg
         self.f = cfg["fly"]
         self.terrain = terrain
         self.objects = objects
         self.R = float(cfg["arena"]["radius_cm"])
+        self.lab = lab
+        self.t = 0.0
+        self.ramp = next((pr for pr in objects.prisms if pr.name == "prisma_co2"), None)
+        self.hatch_cube = next((c for c in objects.cubes if c.hollow), None)
 
     # ---- movimento comandado pelos neuronios ----
     def apply_motor(self, b: FlyBody, m, dt: float, loom_side: float = 0.0) -> None:
         f = self.f
         b.contacts = []
+        if b.level == "fora":
+            return
         self._surfaces(b)          # o que a mosca toca AGORA decide se "comer" tem efeito
         if b.state == "capturada":
+            b.v = 0.0; b.omega = 0.0
             return
         if b.jump_t > 0:
             b.jump_t -= dt
@@ -80,11 +92,12 @@ class Physics:
         b.heading = wrap_angle(b.heading + b.omega * dt)
         nx = b.x + b.v * math.cos(b.heading) * dt
         ny = b.y + b.v * math.sin(b.heading) * dt
-        nx, ny = self._collide(b, nx, ny, dt)
+        nx, ny = self._collide(b, nx, ny, dt) if b.level == "surface" else self._collide_lab(b, nx, ny)
         b.distance += math.hypot(nx - b.x, ny - b.y)
         b.x, b.y = nx, ny
-        b.z = self.terrain.height(b.x, b.y)
+        b.z = self.terrain.height(b.x, b.y) if b.level == "surface" else 0.0
         self._surfaces(b)
+        self._transitions(b)
 
     # ---- reacoes do mundo ----
     def _collide(self, b: FlyBody, nx: float, ny: float, dt: float) -> tuple[float, float]:
@@ -123,10 +136,46 @@ class Physics:
                 b.v = 0.0
         return nx, ny
 
+    def _collide_lab(self, b: FlyBody, nx: float, ny: float) -> tuple[float, float]:
+        lab = self.lab
+        x0, y0, x1, y1 = lab.bounds
+        m = 0.2
+        if nx < x0 + m or nx > x1 - m or ny < y0 + m or ny > y1 - m:
+            b.contacts.append("parede_lab")
+            nx = min(max(nx, x0 + m), x1 - m); ny = min(max(ny, y0 + m), y1 - m)
+            b.v = 0.0
+        for r in lab.obstacles(self.t):
+            if r.contains(nx, ny, 0.15):
+                b.contacts.append("porta_s2" if r is lab.door_s2 else "parede_lab")
+                nx, ny = r.push_out(nx, ny, 0.15)
+                b.v = 0.0
+        return nx, ny
+
+    def _transitions(self, b: FlyBody) -> None:
+        """Reacoes do mundo que mudam de nivel: rampa, escotilha (S1), fundo do lago, elevador (S4 em secrets)."""
+        if self.lab is None or b.level != "surface":
+            return
+        lab = self.lab
+        if self.ramp is not None and math.hypot(b.x - self.ramp.x, b.y - self.ramp.y) < self.ramp.size * 0.8 and b.state in ("andando", "saltando"):
+            b.level = "lab"; b.x, b.y = lab.entry("rampa"); b.contacts.append("entrou:rampa"); b.stuck = False
+            return
+        if self.hatch_cube is not None and lab.hatch_open(self.t) and self.hatch_cube.name in b.contacts:
+            b.level = "lab"; b.x, b.y = lab.entry("escotilha"); b.contacts.append("entrou:escotilha")
+            return
+        if b.stuck and b.stuck_since >= 0 and self.t - b.stuck_since > float(self.cfg["lab"]["lake_sink_s"]):
+            b.level = "lab"; b.x, b.y = lab.entry("lago"); b.stuck = False; b.stuck_since = -1.0; b.contacts.append("entrou:lago")
+
     def _surfaces(self, b: FlyBody) -> None:
         f = self.f
         b.on_surface = "none"
         cr = float(f["contact_radius_cm"])
+        if b.level == "lab":
+            sp = self.lab.sugar if self.lab else None
+            if sp and math.hypot(b.x - sp["x"], b.y - sp["y"]) < sp["r"] + cr * 0.5:
+                b.on_surface = "sugar"
+            return
+        if b.level != "surface":
+            return
         for s in self.objects.spheres:
             if math.hypot(b.x - s.x, b.y - s.y) < s.r + cr and s.surface in ("sugar", "bitter"):
                 b.on_surface = s.surface
@@ -140,6 +189,7 @@ class Physics:
                 if d < w.r - float(f["water_trap_depth_cm"]) and b.state != "saltando":
                     if not b.stuck:
                         b.contacts.append("agua_presa")
+                        b.stuck_since = self.t
                     b.stuck = True
 
     def step_objects(self, dt: float) -> None:
@@ -163,10 +213,10 @@ class Physics:
             if not b.stuck:
                 continue
             for o in bodies:
-                if o is b or o.stuck:
+                if o is b or o.stuck or o.level != b.level:
                     continue
                 if math.hypot(b.x - o.x, b.y - o.y) < 2 * float(self.f["contact_radius_cm"]):
-                    b.stuck = False
+                    b.stuck = False; b.stuck_since = -1.0
                     b.jump_t = float(self.f["jump_duration_s"])
                     b.jump_dir = math.atan2(b.y - 0.0, b.x - 0.0)  # para fora do lago (aproximacao: radial)
                     freed.append((b.name, o.name))

@@ -36,8 +36,10 @@ class Senses:
         d2 = (px - sx) ** 2 + (py - sy) ** 2
         return strength * math.exp(-d2 / (2 * sigma * sigma))
 
-    def sense(self, b: FlyBody, others: list[FlyBody], songs: dict[str, bool], t: float, dt: float) -> dict:
+    def sense(self, b: FlyBody, others: list, songs: dict[str, bool], t: float, dt: float, robots: list | None = None) -> dict:
         st: dict[str, tuple[float, float]] = {}
+        if b.level == "fora":
+            return st
         light = self.light(t)
         odor_scale = 1.0 - (1.0 - float(self.day["night_odor_scale"])) * (1.0 - light)
         loom_scale = 1.0 + (float(self.day["night_loom_scale"]) - 1.0) * (1.0 - light)
@@ -57,15 +59,28 @@ class Senses:
             if name != "agua_presa":
                 add("leg_grn", 0.5, 0.5)
                 add("jo_ce", 0.5, 0.5)     # antena/cabeca encosta em parede, cubo, esfera
-        # odores das fontes (gaussianas), amostrados nas antenas E/D
-        for kind, sx, sy, strength, sigma in self.objects.odor_sources():
+        # odores das fontes (gaussianas), amostrados nas antenas E/D (so na superficie)
+        for kind, sx, sy, strength, sigma in (self.objects.odor_sources() if b.level == "surface" else []):
             pop = {"food": "orn_dm1", "co2": "orn_v", "geosmin": "orn_da2"}[kind]
             add(pop, odor_scale * self._gauss(lx, ly, sx, sy, strength, sigma),
                 odor_scale * self._gauss(rx, ry, sx, sy, strength, sigma))
         # outras moscas: cVA (machos), contato, cancao, objeto pequeno, looming
         cva_sigma, cva_str = float(self.s["cva_sigma_cm"]), float(self.s["cva_strength"])
-        for o in others:
-            if o is b:
+        for o in list(others) + list(robots or []):
+            if o is b or getattr(o, "level", "surface") != b.level:
+                continue
+            if getattr(o, "is_robot", False):
+                if not o.active:
+                    continue
+                d = math.hypot(o.x - b.x, o.y - b.y)
+                br = bearing(b.x, b.y, b.heading, o.x, o.y)
+                sl, sr = sides_from_bearing(br, float(self.s["side_sharpness"]))
+                if d < o.r + 2 * float(self.f["contact_radius_cm"]):
+                    add("jo_ce", sl, sr); add("leg_grn", 0.5 * sl, 0.5 * sr)
+                if abs(o.v) > float(self.s["small_object_min_speed_cm_s"]) and d < 2 * float(self.s["small_object_radius_cm"]):
+                    a = 1.0 / (1.0 + d / 3.0)
+                    add("lc11", a * sl, a * sr)
+                self._loom(b, o.name, d, o.r, sl, sr, dt, loom_scale, add)
                 continue
             d = math.hypot(o.x - b.x, o.y - b.y)
             br = bearing(b.x, b.y, b.heading, o.x, o.y)

@@ -88,7 +88,7 @@ controle; ATTRIBUTION.md com todas as fontes e licenças.
 ## 10. Fases
 F0 reconhecimento (feito). F1 dados, motor, validação, benchmark (feito).
 F2 interface + SCREEN (feito). F3 mundo + replay + visualizador (feito). F4 robôs, laboratório,
-segredos, linha do tempo, diário. F5 painel do cérebro, câmeras, vídeo,
+segredos, linha do tempo, diário (feito). F5 painel do cérebro, câmeras, vídeo,
 métricas, README final, 100 dias simulados.
 
 ## 11. Estrutura e comandos

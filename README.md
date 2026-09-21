@@ -17,7 +17,7 @@ movimento sai da leitura de neurônios do cérebro simulado.
 - [x] F1 dados → CSR, motor event-driven, validação açúcar→MN9, benchmark — `docs/F1_validacao.md`
 - [x] F2 interface sensório-motora + SCREEN por sexo — `docs/F2_screen.md`
 - [x] F3 mundo da superfície + replay + visualizador — `docs/F3_mundo.md`
-- [ ] F4 robôs, laboratório, segredos, diário
+- [x] F4 robôs, laboratório, segredos S1–S4, linha do tempo, diário — `docs/F4_lab.md`
 - [ ] F5 painel do cérebro, câmeras, métricas, 100 dias
 
 ## Como rodar
@@ -48,7 +48,8 @@ cd web; npm install; npm run dev          # visualizador em http://localhost:517
 | Dinâmica LIF e todos os seus parâmetros (Shiu 2024): V_rest = V_reset = −52 mV, limiar −45 mV, τ_m 20 ms, τ_syn 5 ms, refratário 2,2 ms, atraso 1,8 ms, 0,275 mV por sinapse, dt 0,1 ms | Corpo cinemático simplificado (sem física de pernas) |
 | Dois detalhes do modelo publicado que não estão no artigo, mas estão no código e nos dados: (a) entrada que chega a um neurônio refratário é descartada (escrita condicional do Brian2); (b) neurônios estimulados por Poisson não têm refratário (`model.py`: `rfc = 0`). Com os dois, reproduzimos a simulação publicada dentro de 3 % (`docs/F1_validacao.md`) | Individualidade: semente, jitter lognormal de 5 % no ganho sináptico, ganho de fome |
 | Rótulos de tipo celular usados para escolher entradas e saídas (tabelas oficiais; nenhum ID no código) | Feromônios e canção como concentrações e vibrações simplificadas |
-| | Robôs, laboratório e segredos |
+| | Robôs (máquinas de estado sem IA), laboratório e os quatro segredos como mecanismos físicos (`world/world.yaml` → `lab`) |
+| | Humor, pensamentos e gostos do visualizador são leituras do replay (sensores, estado, fome), não estados internos do cérebro |
 | | Reutilização das constantes de Shiu (ajustadas ao FlyWire) no MaleCNS, com VNC incluído; taxas não são comparáveis entre os sexos |
 | | Histamina tratada como inibitória e `unclear` como sem saída no MaleCNS |
 | | Regra de sinal por neurônio (voto majoritário) ignora co-transmissão e receptores pós-sinápticos |

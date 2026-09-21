@@ -90,3 +90,39 @@ brains:
   male_full: malecns10
   male_reduced: malecns10_k3
   max_concurrent: 4            # processos ativos por vez (round-robin de 15 ms)
+
+# -----------------------------------------------------------------------------
+# O LABORATORIO (subsolo): corredores, salas, robos, segredos S1-S4
+# -----------------------------------------------------------------------------
+lab:
+  depth_cm: 10.0               # so visual: o subsolo e desenhado a esta profundidade
+  bounds: [-20.0, -14.0, 20.0, 14.0]   # x0, y0, x1, y1 (retangulo)
+  walls:                       # retangulos solidos [x, y, w, h] (centro, largura, altura)
+    - [0.0,  9.0, 1.0, 10.0]   # parede central norte (deixa o vao da porta S2 entre y=-4 e y=4)
+    - [0.0, -9.0, 1.0, 10.0]   # parede central sul
+    - [10.0, 6.0, 8.0, 1.0]    # divisoria da sala dos robos
+  rooms:                       # so rotulos/visual
+    - {name: corredor_de_chegada, x: -10, y: 0, w: 18, h: 26}
+    - {name: sala_dos_robos, x: 10, y: -4, w: 18, h: 18}
+    - {name: sala_das_telas, x: 10, y: 10, w: 18, h: 6}
+  entries:                     # onde a mosca aparece ao entrar por cada caminho
+    rampa: [-16.0, 0.0]        # prisma_co2 na superficie e a rampa
+    escotilha: [9.0, -10.0]    # sob o cubo oco (S1 abre)
+    lago: [14.0, 8.0]          # fundo do lago falso (presa por muito tempo, afunda)
+  exit_surface: [-12.0, 3.0]   # onde os robos soltam moscas capturadas na superficie
+  lake_sink_s: 8.0             # presa na agua por mais que isso sem resgate: afunda para o subsolo
+  sugar_patch: {x: -12.0, y: -8.0, r: 1.0}   # o laboratorio alimenta os sujeitos (mancha de acucar)
+  secrets:
+    s1_placa_dupla: {patches: [mancha_acucar_1, mancha_acucar_2], hatch_open_s: 20.0, near_cm: 3.0}
+    s2_corredor:    {door: {x: 0.0, y: 0.0, w: 1.0, h: 8.0}, sing_cm: 2.5, female_cm: 5.0, open_s: 10.0}
+    s3_alavanca:    {lever: [16.0, -2.0], hit_cm: 0.8, chase_cm: 8.0, generator_off_s: 20.0}
+    s4_elevador:    {zone: {x: 17.0, y: -11.0, w: 5.0, h: 5.0}, min_flies: 3, open_after_s3_s: 20.0}
+  robots:
+    speed_cm_s: 1.5
+    detect_cm: 7.0             # perseguem moscas ate esta distancia (mesmo nivel)
+    capture_contact_s: 1.5     # contato continuo sem fuga = captura
+    radius_cm: 1.2
+    patrol:
+      - {name: R1, level: lab, route: [[6, -10], [16, -10], [16, 2], [6, 2]]}
+      - {name: R2, level: lab, route: [[4, 10], [16, 10], [16, 8], [4, 8]]}
+      - {name: R3, level: surface, night_only: true, route: [[-8, -8], [8, -8], [8, 8], [-8, 8]]}

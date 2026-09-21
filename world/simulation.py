@@ -21,10 +21,14 @@ import numpy as np
 from brain.types import OUTPUTS, INPUTS
 from interface.config import load_config
 from interface.motor import MotorState
-from replay.format import ReplayWriter, STATE_IDS
+from replay.format import ReplayWriter, STATE_IDS, LEVEL_IDS
 from .geometry import Terrain, Objects, load_world
 from .physics import Physics, FlyBody
 from .senses import Senses
+from .lab import Lab
+from .robots import RobotFleet
+from .secrets import Secrets
+from .diary import write_diary
 
 
 # ----------------------------------------------------------------------------
@@ -112,8 +116,11 @@ class Day:
         self.log = log
         self.terrain = Terrain(self.w["arena"]["hills"], self.w["arena"]["radius_cm"])
         self.objects = Objects.from_config(self.w)
-        self.physics = Physics(self.w, self.terrain, self.objects)
+        self.lab = Lab(self.w["lab"]) if "lab" in self.w else None
+        self.physics = Physics(self.w, self.terrain, self.objects, self.lab)
         self.senses = Senses(self.w, self.objects)
+        self.robots = RobotFleet(self.w) if self.lab else None
+        self.secrets = Secrets(self.w, self.lab, self.objects) if self.lab else None
         rng = np.random.default_rng(1000 + day_index)
         self.bodies: list[FlyBody] = []
         for i, f in enumerate(self.w["flies"]):
@@ -150,7 +157,9 @@ class Day:
                               for b, fl in zip(self.bodies, flies)],
                     "spheres": [asdict(s) for s in self.objects.spheres], "cubes": [asdict(c) for c in self.objects.cubes],
                     "prisms": [asdict(p) for p in self.objects.prisms], "patches": [asdict(p) for p in self.objects.patches],
-                    "water": [asdict(w) for w in self.objects.water]}
+                    "water": [asdict(w) for w in self.objects.water],
+                    "robots": [{"name": r.name, "level": r.level, "route": r.route, "r": r.r, "night_only": r.night_only} for r in (self.robots.robots if self.robots else [])],
+                    "n_robots": len(self.robots.robots) if self.robots else 0}
         writer = ReplayWriter(self.out_dir, manifest, self.rate_pops, len(self.bodies), len(self.objects.spheres), input_pops=INPUTS)
         songs = {b.name: False for b in self.bodies}
         loom_side = {b.name: 0.0 for b in self.bodies}
@@ -159,9 +168,12 @@ class Day:
         maxc = int(self.w["brains"]["max_concurrent"])
         ignited_total = {b.name: 0 for b in self.bodies}
         encounters = set()
+        captures = {b.name: 0 for b in self.bodies}
         for k in range(n_ticks):
             t = k * self.dt
-            states = [self.senses.sense(b, self.bodies, songs, t, self.dt) for b in self.bodies]
+            self.physics.t = t
+            robots = self.robots.robots if self.robots else []
+            states = [self.senses.sense(b, self.bodies, songs, t, self.dt, robots) for b in self.bodies]
             for b, st in zip(self.bodies, states):
                 l4 = st.get("lc4", (0.0, 0.0))
                 loom_side[b.name] = l4[0] - l4[1]
@@ -193,10 +205,15 @@ class Day:
                 for c in b.contacts:
                     if c.startswith("bola") and any(s.name == c and s.pushes == 1 for s in self.objects.spheres):
                         writer.add_event(t, "esfera_empurrada", [b.name], objeto=c)
+                    if c.startswith("entrou:"):
+                        via = c.split(":")[1]
+                        writer.add_event(t, "afundou" if via == "lago" else "entrou_no_lab", [b.name], via=via)
+                if b.level == "lab":
+                    b.time_in_lab += self.dt
                 if m.jump and b.jump_t > 0.1:
                     writer.add_event(t, "salto", [b.name], loom=round(loom_side[b.name], 2))
                 row = [b.x, b.y, b.z, b.heading, b.v, b.omega, STATE_IDS.get(b.state, 0), b.hunger_gain, float(out["ignited"]),
-                       float(out["spikes"]), float(m.feed), float(m.jump), float(m.song), float(m.court), float(b.stuck)]
+                       float(out["spikes"]), float(m.feed), float(m.jump), float(m.song), float(m.court), float(b.stuck), float(LEVEL_IDS[b.level])]
                 r = m.rates_hz
                 for p in self.rate_pops:
                     d = r.get(p, {"all": 0.0, "L": 0.0, "R": 0.0})
@@ -208,6 +225,20 @@ class Day:
             for a, o in self.physics.rescue_check(self.bodies):
                 writer.add_event(t, "resgate_da_agua", [a, o])
             self.physics.step_objects(self.dt)
+            # robos e segredos (reacoes do laboratorio)
+            world_row = []
+            if self.robots:
+                light = self.senses.light(t)
+                for e in self.robots.step(self.bodies, t, self.dt, light, self.lab.generator_off(t), self.lab, tuple(self.w["lab"]["exit_surface"])):
+                    fl = [e["fly"]] if "fly" in e else []
+                    if e["kind"] == "captura":
+                        captures[e["fly"]] += 1
+                    writer.add_event(t, e["kind"], fl, robot=e.get("robot"))
+                for e in self.secrets.check(self.bodies, self.robots, songs, t):
+                    writer.add_event(t, e["kind"], e.get("flies", []), secret=e.get("secret"))
+                for r in self.robots.robots:
+                    world_row += [r.x, r.y, float(r.level == "lab"), float({"patrulha": 0, "persegue": 1, "captura": 2, "carrega": 3, "congelado": 4, "dormindo": 5}[r.state])]
+                world_row += self.lab.state_row(t)
             # encontros: pares a menos de 1 cm (registra inicio)
             enc = float(self.w["fly"]["encounter_cm"])
             for i in range(len(self.bodies)):
@@ -222,13 +253,23 @@ class Day:
                             writer.add_event(t, "encontro", [bi.name, bj.name], sexos=f"{bi.sex[0]}{bj.sex[0]}")
                     else:
                         encounters.discard(key)
-            writer.add_frame(rows, [(s.x, s.y) for s in self.objects.spheres])
+            writer.add_frame(rows, [(s.x, s.y) for s in self.objects.spheres], world_row)
             if k % max(1, n_ticks // 10) == 0:
                 self.log(f"  t={t:5.1f}s  " + " ".join(f"{b.name}:{b.state[:4]}" for b in self.bodies) + f"  ({time.time()-t0:.0f} s)")
         for fl in flies:
             fl.close()
         self.stats = self._metrics(near, ignited_total)
-        d = writer.close({"metrics": self.stats, "wall_s": time.time() - t0})
+        for b in self.bodies:
+            self.stats[b.name]["tempo_no_subsolo_s"] = round(b.time_in_lab, 2)
+            self.stats[b.name]["capturas"] = captures[b.name]
+        secrets = self.secrets.summary() if self.secrets else {}
+        self.stats["_dia"]["segredos"] = {k: {"quase": v["quase"], "disparou": v["disparou"]} for k, v in secrets.items() if isinstance(v, dict)}
+        self.stats["_dia"]["fugiram"] = secrets.get("fugiram", [])
+        diary = write_diary(self.day_index, self.seconds, manifest["flies"], self.stats, writer.events, secrets,
+                            self.cfg.get("interventions"))
+        (self.out_dir).mkdir(parents=True, exist_ok=True)
+        (self.out_dir / "diario.md").write_text(diary, encoding="utf-8")
+        d = writer.close({"metrics": self.stats, "wall_s": time.time() - t0, "secrets": secrets, "diary": diary})
         self.log(f"[dia {self.day_index}] {self.seconds:.0f} s bio em {time.time()-t0:.0f} s de parede -> {d}")
         return d
 

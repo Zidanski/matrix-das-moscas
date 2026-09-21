@@ -21,6 +21,8 @@
       #timeline button, #timeline select { background: #1f2933; color: var(--fg); border: 1px solid #334; border-radius: 6px; padding: 4px 8px; font: inherit; cursor: pointer; }
       #events { position: absolute; left: 10px; right: 10px; bottom: 54px; height: 14px; pointer-events: none; }
       #events span { position: absolute; bottom: 0; width: 2px; height: 14px; }
+      #diary { display: none; position: absolute; left: 10px; bottom: 60px; width: min(560px, calc(100% - 20px)); max-height: 60%; overflow: auto; background: var(--panel); padding: 10px 14px; border-radius: 8px; }
+      #diary pre { white-space: pre-wrap; font: 12px/1.45 system-ui, sans-serif; margin: 0; }
       #load { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--bg); color: var(--muted); font-size: 16px; }
     </style>
   </head>
@@ -35,8 +37,10 @@
         <select id="speed"><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
         <input id="scrub" type="range" min="0" max="1" step="1" value="0" />
         <span id="clock" class="muted">0,0 s</span>
-        <select id="cam"><option value="orbit">câmera livre</option><option value="follow">seguir mosca</option><option value="top">de cima</option></select>
+        <select id="cam"><option value="orbit">câmera livre</option><option value="follow">seguir mosca</option><option value="top">de cima</option><option value="security">câmera de segurança (lab)</option></select>
+        <button id="diarybtn">📓 diário</button>
       </div>
+      <div id="diary"></div>
       <div id="load">carregando replay…</div>
     </div>
     <script type="module" src="/src/main.ts"></script>

@@ -18,6 +18,11 @@ export class World3D {
   sky: THREE.Mesh;
   spheres: THREE.Mesh[] = [];
   flies: FlyMesh[] = [];
+  robots: RobotMesh[] = [];
+  labGroup = new THREE.Group();
+  labDepth = 0;
+  doorMesh?: THREE.Mesh; hatchMesh?: THREE.Mesh; elevatorMesh?: THREE.Mesh; labLights: THREE.Mesh[] = [];
+  ground!: THREE.Mesh;
   constructor(public m: Manifest) {
     const w = m.world;
     this.height = hills(w);
@@ -48,9 +53,10 @@ export class World3D {
     }
     tri.rotateX(-Math.PI / 2);   // plano XY (z = altura) -> three (y = altura, z = -y)
     tri.computeVertexNormals();
-    const ground = new THREE.Mesh(tri, new THREE.MeshLambertMaterial({ color: 0x76c442, flatShading: true }));
+    const ground = new THREE.Mesh(tri, new THREE.MeshLambertMaterial({ color: 0x76c442, flatShading: true, transparent: true }));
     ground.receiveShadow = true;
     this.scene.add(ground);
+    this.ground = ground;
     void gpos;
     // borda da arena
     const ring = new THREE.Mesh(new THREE.TorusGeometry(R, 0.3, 6, 64), new THREE.MeshLambertMaterial({ color: 0x5aa832 }));
@@ -135,6 +141,71 @@ export class World3D {
       this.scene.add(mesh);
     }
     for (const f of m.flies) this.flies.push(new FlyMesh(f, this.scene));
+    this.buildLab(m);
+  }
+  buildLab(m: Manifest) {
+    const lab = m.world.lab;
+    if (!lab) return;
+    const D = (this.labDepth = lab.depth_cm ?? 10);
+    const [x0, y0, x1, y1] = lab.bounds;
+    const g = this.labGroup;
+    // piso e teto frios
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, y1 - y0), new THREE.MeshLambertMaterial({ color: 0x2b3440 }));
+    floor.rotation.x = -Math.PI / 2; floor.position.set((x0 + x1) / 2, -D, -(y0 + y1) / 2);
+    g.add(floor);
+    const wallMat = new THREE.MeshLambertMaterial({ color: 0x8fa3b8, flatShading: true });
+    const H = 2.5;
+    const box = (cx: number, cy: number, w: number, h: number, mat = wallMat, hh = H) => {
+      const mm = new THREE.Mesh(new THREE.BoxGeometry(w, hh, h), mat); mm.position.set(cx, -D + hh / 2, -cy); return mm;
+    };
+    // paredes externas (finas)
+    g.add(box((x0 + x1) / 2, y0, x1 - x0, 0.4), box((x0 + x1) / 2, y1, x1 - x0, 0.4), box(x0, (y0 + y1) / 2, 0.4, y1 - y0), box(x1, (y0 + y1) / 2, 0.4, y1 - y0));
+    for (const [cx, cy, w, h] of lab.walls) g.add(box(cx, cy, w, h));
+    const d = lab.secrets.s2_corredor.door;
+    this.doorMesh = box(d.x, d.y, d.w, d.h, new THREE.MeshLambertMaterial({ color: 0xff7b54 }));
+    g.add(this.doorMesh);
+    const z = lab.secrets.s4_elevador.zone;
+    this.elevatorMesh = new THREE.Mesh(new THREE.BoxGeometry(z.w, 0.3, z.h), new THREE.MeshLambertMaterial({ color: 0x555b66 }));
+    this.elevatorMesh.position.set(z.x, -D + 0.15, -z.y);
+    g.add(this.elevatorMesh);
+    const [lx, ly] = lab.secrets.s3_alavanca.lever;
+    const lever = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 1.6, 6), new THREE.MeshLambertMaterial({ color: 0xffd166 }));
+    lever.position.set(lx, -D + 0.8, -ly); lever.rotation.z = 0.5; g.add(lever);
+    const gen = box(lx, ly - 1.5, 1.5, 1.0, new THREE.MeshLambertMaterial({ color: 0x6c757d }), 1.2); g.add(gen);
+    if (lab.sugar_patch) {
+      const sp = new THREE.Mesh(new THREE.CircleGeometry(lab.sugar_patch.r, 12), new THREE.MeshLambertMaterial({ color: SURF.sugar }));
+      sp.rotation.x = -Math.PI / 2; sp.position.set(lab.sugar_patch.x, -D + 0.03, -lab.sugar_patch.y); g.add(sp);
+    }
+    // telas (sala das telas): painéis que "mostram os cérebros" (F5 liga ao painel neural)
+    for (let i = 0; i < 4; i++) {
+      const scr = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 1.6), new THREE.MeshBasicMaterial({ color: 0x0f3d5c }));
+      scr.position.set(3 + i * 4.2, -D + 1.6, -(y1 - 0.5)); g.add(scr);
+    }
+    // luzes frias
+    for (let i = 0; i < 6; i++) {
+      const l = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.1, 0.5), new THREE.MeshBasicMaterial({ color: 0xcfe8ff }));
+      l.position.set(x0 + 4 + i * 6.4, -D + H - 0.1, -((y0 + y1) / 2)); g.add(l); this.labLights.push(l);
+    }
+    const pl = new THREE.PointLight(0x9ec5ff, 30, 60); pl.position.set(0, -D + 2, 0); g.add(pl);
+    // escotilha (tampa sobre o cubo oco na superficie)
+    const cube = m.cubes.find((c: any) => c.hollow);
+    if (cube) {
+      this.hatchMesh = new THREE.Mesh(new THREE.BoxGeometry(cube.size * 0.8, 0.15, cube.size * 0.8), new THREE.MeshLambertMaterial({ color: 0x333 }));
+      this.hatchMesh.position.set(cube.x, this.height(cube.x, cube.y) + cube.size + 0.1, -cube.y);
+      this.scene.add(this.hatchMesh);
+    }
+    for (const r of m.robots ?? []) this.robots.push(new RobotMesh(r, g, D));
+    this.scene.add(g);
+  }
+  setLab(door: boolean, hatch: boolean, genOff: boolean, elevator: boolean) {
+    if (this.doorMesh) this.doorMesh.visible = !door;
+    if (this.hatchMesh) this.hatchMesh.position.y += 0; if (this.hatchMesh) this.hatchMesh.rotation.x = hatch ? -1.2 : 0;
+    if (this.elevatorMesh) (this.elevatorMesh.material as THREE.MeshLambertMaterial).color.set(elevator ? 0x7ee787 : 0x555b66);
+    for (const l of this.labLights) (l.material as THREE.MeshBasicMaterial).color.set(genOff ? 0x331111 : 0xcfe8ff);
+  }
+  setUnderground(show: boolean) {
+    (this.ground.material as THREE.MeshLambertMaterial).opacity = show ? 0.25 : 1.0;
+    this.labGroup.visible = true;
   }
   /** coordenadas do mundo (x, y no plano, z altura) -> three (x, y=altura, z=-y) */
   toThree(x: number, y: number, z = 0): THREE.Vector3 { return new THREE.Vector3(x, this.height(x, y) + z, -y); }
@@ -149,6 +220,35 @@ export class World3D {
     (this.sky.material as THREE.MeshBasicMaterial).color.setScalar(0.25 + 0.75 * light);
   }
   setSphere(i: number, x: number, y: number, r: number) { this.spheres[i]?.position.copy(this.toThree(x, y, r)); }
+}
+
+export class RobotMesh {
+  group = new THREE.Group();
+  eye: THREE.Mesh;
+  constructor(public info: any, parent: THREE.Object3D, public depth: number) {
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 1.0), new THREE.MeshLambertMaterial({ color: 0xadb5bd, flatShading: true }));
+    body.position.y = 1.0;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.55, 8, 6), new THREE.MeshLambertMaterial({ color: 0xdee2e6, flatShading: true }));
+    head.position.y = 2.0;
+    this.eye = new THREE.Mesh(new THREE.SphereGeometry(0.15, 6, 4), new THREE.MeshBasicMaterial({ color: 0xff3b3b }));
+    this.eye.position.set(0.45, 2.05, 0);
+    for (const s of [1, -1]) {
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.2, 6), new THREE.MeshLambertMaterial({ color: 0x868e96 }));
+      arm.position.set(0.3, 1.0, s * 0.85); arm.rotation.x = s * 0.4; this.group.add(arm);
+    }
+    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 1.2, 8), new THREE.MeshLambertMaterial({ color: 0x343a40 }));
+    wheel.rotation.z = Math.PI / 2; wheel.position.y = 0.3;
+    this.group.add(body, head, this.eye, wheel);
+    const label = makeLabel(info.name, "#ffffff"); label.position.y = 3.0; this.group.add(label);
+    parent.add(this.group);
+  }
+  update(x: number, y: number, lab: boolean, state: number, height: (x: number, y: number) => number, t: number) {
+    this.group.position.set(x, lab ? -this.depth : height(x, y) + 0.05, -y);
+    this.group.visible = state !== 5;                          // dormindo = recolhido
+    const chasing = state === 1 || state === 3;
+    (this.eye.material as THREE.MeshBasicMaterial).color.set(state === 4 ? 0x222222 : chasing ? 0xff3b3b : 0x3bd1ff);
+    if (state === 0 || state === 1 || state === 3) this.group.rotation.y = Math.sin(t) * 0.05;
+  }
 }
 
 const STATE_WING: Record<string, number> = { parada: 0, andando: 0.15, re: 0.15, comendo: 0.05, saltando: 1.2, cantando: 0.9, presa: 0.3, convulsao: 1.5, capturada: 0, grooming: 0.1, lutando: 0.7, cortejando: 0.4 };
