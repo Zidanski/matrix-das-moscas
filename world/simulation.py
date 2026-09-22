@@ -246,7 +246,7 @@ class Day:
         n_ticks = int(round(self.seconds / self.dt))
         manifest = {"world": self.w, "interface": self.cfg, "dt_s": self.dt, "seconds": self.seconds,
                     "brain_mode": self.brain_mode, "day_index": self.day_index,
-                    "flies": [{"name": b.name, "sex": b.sex, "color": self.w["flies"][b.idx]["color"], "hud": fl.info["hud"],
+                    "flies": [{"name": b.name, "sex": b.sex, "color": self.w["flies"][b.idx]["color"], "hat": self.w["flies"][b.idx].get("hat", ""), "hud": fl.info["hud"],
                                "n_neurons": fl.info["n"], "missing_inputs": fl.info["missing"], "control": self.w["flies"][b.idx]["name"] == self.control_fly}
                               for b, fl in zip(self.bodies, flies)],
                     "spheres": [asdict(s) for s in self.objects.spheres], "cubes": [asdict(c) for c in self.objects.cubes],
@@ -270,6 +270,9 @@ class Day:
         ignited_total = {b.name: 0 for b in self.bodies}
         encounters = set()
         captures = {b.name: 0 for b in self.bodies}
+        deaths: dict[str, float] = {}
+        starve_s = float(self.physics.f.get("starve_after_s", 0) or 0)
+        starve_lab_only = bool(self.physics.f.get("starve_only_in_lab", True))
         last_stuck: dict[str, float] = {}
         k = -1
         while k + 1 < n_ticks and not self.stop:
@@ -309,7 +312,7 @@ class Day:
                     for i in grp:
                         outs[i] = flies[i].recv()
             # camada social gamificada: assume quando o cerebro esta ocioso
-            motors = {b.name: MotorState(**out["motor"]) for b, out in zip(self.bodies, outs)}
+            motors = {b.name: MotorState(**out["motor"]) if not b.dead else MotorState() for b, out in zip(self.bodies, outs)}
             overrides, social_events = self.social.step(self.bodies, motors, self.objects.spheres, t, self.dt)
             for e in social_events:
                 writer.add_event(t, e["kind"], e["flies"], **{kk: v for kk, v in e.items() if kk not in ("kind", "flies")})
@@ -327,6 +330,12 @@ class Day:
                 if out["ignited"]:
                     b.state = "convulsao"
                 self.physics.update_hunger(b, t, self.dt)
+                # fome mortal (gamificado): so no subsolo, onde nao ha comida; capturada e excecao (o robo a alimenta)
+                if starve_s > 0 and not b.dead and b.state != "capturada" and (b.level == "lab" or not starve_lab_only) \
+                        and b.level != "fora" and t - b.t_last_meal > starve_s:
+                    b.dead = True; b.t_death = t; b.state = "morta"; b.v = 0.0; b.omega = 0.0
+                    deaths[b.name] = t
+                    writer.add_event(t, "morreu_de_fome", [b.name], sem_comer_s=round(t - b.t_last_meal, 1), onde=b.level)
                 songs[b.name] = bool(m.song) and b.sex == "male"
                 if m.court and b.sex == "male" and b.state in ("andando", "parada", "cantando"):
                     b.state = "cortejando" if not m.song else "cantando"
@@ -377,6 +386,14 @@ class Day:
                     fl = [e["fly"]] if "fly" in e else []
                     if e["kind"] == "captura":
                         captures[e["fly"]] += 1
+                    if e["kind"] == "soltura":
+                        # o robo a alimentou la embaixo (excecao da fome) e ela volta "iluminada", contando do mundo magico
+                        bb = next((x for x in self.bodies if x.name == e["fly"]), None)
+                        if bb is not None:
+                            bb.t_last_meal = t; bb.hunger_gain = 1.0
+                            bb.enlightened = True; bb.enlightened_t = t
+                            self.social.enlighten(bb.name, t)
+                            writer.add_event(t, "voltou_iluminada", [bb.name], robot=e.get("robot"))
                     writer.add_event(t, e["kind"], fl, robot=e.get("robot"))
                 for e in self.secrets.check(self.bodies, self.robots, songs, t):
                     writer.add_event(t, e["kind"], e.get("flies", []), secret=e.get("secret"))
@@ -415,10 +432,13 @@ class Day:
         for b in self.bodies:
             self.stats[b.name]["tempo_no_subsolo_s"] = round(b.time_in_lab, 2)
             self.stats[b.name]["capturas"] = captures[b.name]
+            self.stats[b.name]["morreu_de_fome_s"] = deaths.get(b.name)
+            self.stats[b.name]["iluminada"] = bool(b.enlightened)
         secrets = self.secrets.summary() if self.secrets else {}
         self.stats["_dia"]["social"] = self.social.summary()
         self.stats["_dia"]["segredos"] = {k: {"quase": v["quase"], "disparou": v["disparou"]} for k, v in secrets.items() if isinstance(v, dict)}
         self.stats["_dia"]["fugiram"] = secrets.get("fugiram", [])
+        self.stats["_dia"]["mortes"] = deaths
         diary = write_diary(self.day_index, self.seconds, manifest["flies"], self.stats, writer.events, secrets,
                             self.cfg.get("interventions"))
         (self.out_dir).mkdir(parents=True, exist_ok=True)
@@ -475,6 +495,10 @@ class Day:
             body.x, body.y = float(cmd.get("x", 0.0)), float(cmd.get("y", 0.0)); body.level = cmd.get("level", "surface"); body.stuck = False
         elif kind == "feed" and body is not None:
             body.hunger_gain = 1.0; body.t_last_meal = t
+        elif kind == "revive" and body is not None:
+            ex = tuple(self.w["lab"]["exit_surface"])
+            body.dead = False; body.t_death = -1.0; body.state = "parada"; body.hunger_gain = 1.0; body.t_last_meal = t
+            body.level = "surface"; body.x, body.y = float(ex[0]), float(ex[1]); body.stuck = False
         elif kind == "set_need" and body is not None:
             n = self.social.needs[body.name]
             setattr(n, cmd.get("need", "social"), float(cmd.get("value", 1.0)))

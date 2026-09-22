@@ -83,7 +83,7 @@ class RobotFleet:
                 continue
             if r.state == "congelado":
                 r.state = "patrulha"
-            same = [b for b in bodies if b.level == r.level and b.state not in ("capturada",)]
+            same = [b for b in bodies if b.level == r.level and b.state not in ("capturada", "morta") and not getattr(b, "dead", False)]
             if r.state == "patrulha":
                 tx, ty = r.route[r.wp]
                 if r._move_towards(tx, ty, dt) < 0.1:

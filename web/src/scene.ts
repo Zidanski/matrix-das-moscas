@@ -308,7 +308,47 @@ export class RobotMesh {
   }
 }
 
-const STATE_WING: Record<string, number> = { parada: 0, andando: 0.15, re: 0.15, comendo: 0.05, saltando: 1.2, cantando: 0.9, presa: 0.3, convulsao: 1.5, capturada: 0, grooming: 0.1, lutando: 0.7, cortejando: 0.4, dancando: 0.6, flertando: 0.35, passeando: 0.15, jogando_bola: 0.5, jogando_cartas: 0.05, apostando: 0.8 };
+const STATE_WING: Record<string, number> = { parada: 0, andando: 0.15, re: 0.15, comendo: 0.05, saltando: 1.2, cantando: 0.9, presa: 0.3, convulsao: 1.5, capturada: 0, grooming: 0.1, lutando: 0.7, cortejando: 0.4, dancando: 0.6, flertando: 0.35, passeando: 0.15, jogando_bola: 0.5, jogando_cartas: 0.05, apostando: 0.8, morta: 0, pregando: 0.3, ouvindo: 0.05 };
+const HAT_BY_NAME: Record<string, string> = { Ada: "cartola", Bia: "palha", Cleo: "coroa", Dan: "bone", Edu: "cowboy", Fil: "mago" };
+
+/** Chapeu caracteristico (so visual), preso na cabeca. */
+function makeHat(kind: string, L: number, color: THREE.Color): THREE.Group {
+  const g = new THREE.Group();
+  const lam = (c: number | THREE.Color) => new THREE.MeshLambertMaterial({ color: c, flatShading: true });
+  const add = (geo: THREE.BufferGeometry, mat: THREE.Material, y: number, x = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); g.add(m); return m; };
+  if (kind === "cartola") {
+    add(new THREE.CylinderGeometry(L * 0.42, L * 0.42, 0.03, 12), lam(0x111111), 0);
+    add(new THREE.CylinderGeometry(L * 0.26, L * 0.28, L * 0.55, 12), lam(0x111111), L * 0.28);
+    add(new THREE.CylinderGeometry(L * 0.29, L * 0.29, 0.04, 12), lam(0xe63946), L * 0.08);
+  } else if (kind === "palha") {
+    add(new THREE.CylinderGeometry(L * 0.55, L * 0.6, 0.03, 12), lam(0xe9c46a), 0);
+    add(new THREE.CylinderGeometry(L * 0.25, L * 0.3, L * 0.22, 12), lam(0xe9c46a), L * 0.11);
+    add(new THREE.CylinderGeometry(L * 0.31, L * 0.31, 0.03, 12), lam(0x8d6e63), L * 0.06);
+  } else if (kind === "coroa") {
+    add(new THREE.CylinderGeometry(L * 0.28, L * 0.26, L * 0.2, 8), lam(0xffd166), L * 0.1);
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      const spike = add(new THREE.ConeGeometry(L * 0.07, L * 0.22, 4), lam(0xffd166), L * 0.3, Math.cos(a) * L * 0.24, Math.sin(a) * L * 0.24);
+      const gem = add(new THREE.SphereGeometry(L * 0.05, 5, 4), new THREE.MeshBasicMaterial({ color: i % 2 ? 0xe63946 : 0x4cc9f0 }), L * 0.12, Math.cos(a) * L * 0.27, Math.sin(a) * L * 0.27);
+      void spike; void gem;
+    }
+  } else if (kind === "bone") {
+    add(new THREE.SphereGeometry(L * 0.3, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), lam(color), 0);
+    add(new THREE.BoxGeometry(L * 0.35, 0.03, L * 0.4), lam(color.clone().multiplyScalar(0.7)), 0.01, L * 0.35, 0);
+    add(new THREE.SphereGeometry(L * 0.05, 5, 4), lam(0xffffff), L * 0.3);
+  } else if (kind === "cowboy") {
+    const brim = add(new THREE.CylinderGeometry(L * 0.62, L * 0.62, 0.03, 12), lam(0x8d5524), 0);
+    brim.scale.z = 0.8; brim.rotation.z = 0.12;
+    add(new THREE.CylinderGeometry(L * 0.22, L * 0.28, L * 0.3, 10), lam(0x8d5524), L * 0.15);
+    add(new THREE.CylinderGeometry(L * 0.29, L * 0.29, 0.03, 10), lam(0x3e2723), L * 0.05);
+  } else {  // mago
+    const cone = add(new THREE.ConeGeometry(L * 0.35, L * 0.9, 10), lam(0x5a189a), L * 0.45);
+    cone.rotation.z = -0.15;
+    add(new THREE.CylinderGeometry(L * 0.5, L * 0.5, 0.03, 12), lam(0x5a189a), 0);
+    for (let i = 0; i < 3; i++) add(new THREE.SphereGeometry(L * 0.04, 4, 3), new THREE.MeshBasicMaterial({ color: 0xffd166 }), L * (0.25 + i * 0.22), L * (0.18 - i * 0.05), L * 0.1 * (i % 2 ? 1 : -1));
+  }
+  return g;
+}
 
 export class FlyMesh {
   group = new THREE.Group();
@@ -317,6 +357,9 @@ export class FlyMesh {
   bubble: THREE.Sprite;
   bubbleText = "";
   cards: THREE.Group;
+  cutlery: THREE.Group;
+  fork!: THREE.Group; knife!: THREE.Group;
+  hat: THREE.Group;
   body: THREE.Mesh;
   L: number;
   constructor(public info: FlyInfo, scene: THREE.Scene) {
@@ -362,6 +405,25 @@ export class FlyMesh {
     }
     this.cards.visible = false;
     this.group.add(this.cards);
+    // garfo e faca (so aparecem comendo)
+    this.cutlery = new THREE.Group();
+    const steel = new THREE.MeshLambertMaterial({ color: 0xd9d9d9 });
+    const wood = new THREE.MeshLambertMaterial({ color: 0x8d6e63 });
+    this.fork = new THREE.Group();
+    const fh = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, L * 0.7, 5), wood); fh.position.y = L * 0.2; this.fork.add(fh);
+    for (let i = 0; i < 3; i++) { const tine = new THREE.Mesh(new THREE.BoxGeometry(0.012, L * 0.25, 0.012), steel); tine.position.set(0, L * 0.65, (i - 1) * 0.03); this.fork.add(tine); }
+    this.fork.position.set(L * 0.55, L * 0.15, L * 0.55);
+    this.knife = new THREE.Group();
+    const kh = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, L * 0.6, 5), wood); kh.position.y = L * 0.15; this.knife.add(kh);
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.012, L * 0.4, 0.07), steel); blade.position.set(0, L * 0.65, 0.02); this.knife.add(blade);
+    this.knife.position.set(L * 0.55, L * 0.15, -L * 0.55);
+    this.cutlery.add(this.fork, this.knife);
+    this.cutlery.visible = false;
+    this.group.add(this.cutlery);
+    // chapeu caracteristico
+    this.hat = makeHat(info.hat || HAT_BY_NAME[info.name] || "palha", L, color);
+    this.hat.position.set(L * 0.6, L * 0.24, 0);
+    this.group.add(this.hat);
     thorax.castShadow = true;
     scene.add(this.group);
   }
@@ -376,16 +438,54 @@ export class FlyMesh {
     const flap = a * Math.sin(t * (state === "cantando" ? 220 : 60));
     for (const w of this.wings) w.rotation.z = w.userData.side * (0.15 + flap);
     this.cards.visible = state === "jogando_cartas";
+    this.cutlery.visible = state === "comendo";
+    this.hat.rotation.set(0, 0, 0);
+    if (state === "morta") {
+      // de patas para cima, imovel
+      this.group.rotation.z = Math.PI;
+      this.group.position.y = pos.y + L * 0.5;
+      this.hat.position.y = L * 0.1;
+      this.bubble.visible = false;
+      return;
+    }
+    this.hat.position.y = L * 0.24;
     if (state === "saltando") {
       this.group.position.y += 0.9 * Math.abs(Math.sin(t * 26));       // arco do salto
+    } else if (state === "comendo") {
+      // refeicao com garfo e faca: alternam subindo e descendo, cabeca acena
+      const ph = t * 9;
+      this.fork.position.y = L * 0.15 + L * 0.18 * Math.max(0, Math.sin(ph));
+      this.fork.rotation.x = -0.6 * Math.max(0, Math.sin(ph));
+      this.knife.position.y = L * 0.15 + L * 0.12 * Math.max(0, Math.sin(ph + Math.PI));
+      this.knife.rotation.z = 0.3 * Math.sin(ph + Math.PI);
+      this.group.rotation.x = 0.12 * Math.sin(ph * 2);
     } else if (state === "jogando_bola") {
+      // chute: recua, investe e da um pulinho; o chapeu balanca
       const ph = (t * 10) % (Math.PI * 2);
-      this.group.position.x += Math.cos(heading) * 0.15 * Math.sin(ph);   // investida do chute
-      this.group.position.z -= Math.sin(heading) * 0.15 * Math.sin(ph);
-      this.group.rotation.x = -0.35 * Math.max(0, Math.sin(ph));
+      const lunge = 0.3 * Math.sin(ph);
+      this.group.position.x += Math.cos(heading) * lunge;
+      this.group.position.z -= Math.sin(heading) * lunge;
+      this.group.position.y += L * 0.5 * Math.max(0, Math.sin(ph));
+      this.group.rotation.x = -0.5 * Math.max(0, Math.sin(ph));
+      this.hat.rotation.z = 0.4 * Math.sin(ph);
     } else if (state === "jogando_cartas") {
-      this.group.position.y += L * 0.08 * Math.sin(t * 4);              // pensa, olha as cartas
+      // olha as cartas, abre e fecha o leque, joga uma na mesa
+      this.group.position.y += L * 0.08 * Math.sin(t * 4);
+      const fan = 0.55 + 0.45 * Math.sin(t * 2);
+      this.cards.children.forEach((c, i) => { c.rotation.y = (i - 1) * 0.5 * fan; c.position.z = (i - 1) * L * 0.35 * fan; });
+      const thrown = this.cards.children[1];
+      const ph = (t * 1.5) % (Math.PI * 2);
+      thrown.position.x = L * 0.7 + (ph < 1.2 ? L * 1.2 * (ph / 1.2) : 0);
+      thrown.position.y = L * 1.2 - (ph < 1.2 ? L * 0.9 * (ph / 1.2) : 0);
       this.cards.rotation.z = 0.15 * Math.sin(t * 3);
+    } else if (state === "pregando") {
+      // conta do mundo magico: gesticula, gira de um lado para o outro, chapeu balanca
+      this.group.rotation.y = heading + 0.5 * Math.sin(t * 3);
+      this.group.position.y += L * 0.25 * Math.abs(Math.sin(t * 8));
+      this.hat.rotation.z = 0.25 * Math.sin(t * 6);
+    } else if (state === "ouvindo") {
+      this.group.rotation.z = 0.22;                                      // cabeca inclinada, ouvindo
+      this.group.rotation.y = heading + 0.08 * Math.sin(t * 2);
     } else if (state === "apostando") {
       this.group.position.y += L * 0.5 * Math.abs(Math.sin(t * 14));    // torce, pulando
     } else if (state === "dancando") {

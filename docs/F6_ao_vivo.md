@@ -147,6 +147,44 @@ Para um ao vivo em tempo real de verdade seria preciso ou só as fêmeas (3 ×
 0,8 s/s em paralelo ≈ tempo real) ou um subcircuito menor para os machos,
 que precisaria passar de novo pelo SCREEN.
 
+## 9. Fome mortal, o mundo mágico e os chapéus (2026-09-22)
+
+Tudo desta seção é **camada gamificada** (não vem dos neurônios) e está
+marcado como tal no replay e no dossiê.
+
+- **Fome mortal só no subsolo.** `fly.starve_after_s` (45 s) em
+  `world/world.yaml`: uma mosca que passa esse tempo sem comer **e está no
+  laboratório** (lá não há comida) morre de fome: estado `morta`, fica de
+  patas para cima, sem sensores, sem movimento, ignorada pelos robôs e pela
+  camada social. Na superfície nunca morre (há comida por perto). **Exceção:
+  a mosca capturada** — o robô a alimenta lá embaixo (o relógio de fome
+  zera na soltura). Evento `morreu_de_fome`, linha no diário, traço no
+  dossiê, `metrics._dia.mortes`. Modo Deus ganhou **reviver**.
+- **A iluminada.** Quem o robô devolve à superfície volta `pregando`
+  (evento `voltou_iluminada`): passa a contar do "mundo mágico que viu".
+  Perto de uma mosca que ainda não acredita, faz um sermão de 3 s (ela
+  `pregando`, a outra `ouvindo`). A chance de acreditar é
+  `sermon_believe_base` (0,35) + 0,4·amizade + 0,3·romance. Quem acredita
+  vira crente **e também passa a contar**; quem não acredita passa a "achar
+  X maluca" (amizade cai 0,1; evento `achou_maluca`). Com
+  `revolution_min_believers` (3) crentes, contando a profeta, dispara a
+  **revolução** (evento `revolucao`): as crentes ficam com a curiosidade no
+  máximo e marcham juntas para o laboratório (rampa → porta S2 → elevador).
+  Se isso abre algum segredo continua dependendo dos mecanismos S1–S4; a
+  revolução só junta as moscas no lugar certo. "Podendo ou não" é literal:
+  as estatísticas contam.
+- **Chapéus** (`hat:` por mosca no `world.yaml`, só visual): Ada cartola,
+  Bia chapéu de palha, Cleo coroa, Dan boné, Edu chapéu de cowboy, Fil
+  chapéu de mago. O chapéu balança no chute e no sermão.
+- **Animações novas**: comer com **garfo e faca** (alternam, a cabeça acena),
+  chute com recuo, investida e pulinho, cartas em leque que abre e fecha e
+  uma carta jogada na mesa, sermão gesticulado, ouvinte de cabeça inclinada,
+  morta de patas para cima.
+
+Testes: `tests/test_social.py` cobre a morte no subsolo com a capturada
+isenta e a superfície imune, a profeta que converte 3 e dispara a revolução,
+e a cética que a acha maluca.
+
 ## 7. Verificação
 
 Testes: 39 passam (`tests/test_social.py` cobre a camada social, o modo Deus

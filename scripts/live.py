@@ -85,7 +85,7 @@ class LiveServer:
                 "fields": fields, "n_flies": len(d.bodies), "n_spheres": len(d.objects.spheres), "state_ids": STATE_IDS, "level_ids": LEVEL_IDS,
                 "robot_fields": ROBOT_FIELDS, "lab_fields": LAB_FIELDS, "n_robots": len(d.robots.robots) if d.robots else 0,
                 "world_row_len": (len(d.robots.robots) * 4 + 4) if d.robots else 0,
-                "flies": [{"name": b.name, "sex": b.sex, "color": d.w["flies"][b.idx]["color"], "hud": fl.info["hud"], "n_neurons": fl.info["n"],
+                "flies": [{"name": b.name, "sex": b.sex, "color": d.w["flies"][b.idx]["color"], "hat": d.w["flies"][b.idx].get("hat", ""), "hud": fl.info["hud"], "n_neurons": fl.info["n"],
                            "missing_inputs": fl.info["missing"], "control": d.w["flies"][b.idx]["name"] == d.control_fly} for b, fl in zip(d.bodies, d.flies)],
                 "spheres": [asdict(s) for s in d.objects.spheres], "cubes": [asdict(c) for c in d.objects.cubes], "prisms": [asdict(p) for p in d.objects.prisms],
                 "patches": [asdict(p) for p in d.objects.patches], "water": [asdict(w) for w in d.objects.water],

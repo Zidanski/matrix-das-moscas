@@ -31,7 +31,10 @@ export function mood(rp: Replay, k: number, i: number): Mood {
   const st = rp.stateNames[rp.get(k, i, "state")];
   const hunger = rp.get(k, i, "hunger");
   const g = (fem: string, masc: string) => (rp.manifest.flies[i].sex === "male" ? masc : fem);
+  if (st === "morta") return { emoji: "☠️", word: g("morta de fome", "morto de fome"), color: "#adb5bd" };
   if (rp.get(k, i, "ignited") > 0) return { emoji: "😵", word: "convulsão", color: "#e63946" };
+  if (st === "pregando") return { emoji: "✨", word: "falando do mundo mágico", color: "#c77dff" };
+  if (st === "ouvindo") return { emoji: "👂", word: "ouvindo a história", color: "#a8dadc" };
   if (st === "presa") return { emoji: "😰", word: g("presa na água", "preso na água"), color: "#4cc9f0" };
   if (st === "capturada") return { emoji: "🤖", word: g("capturada", "capturado"), color: "#adb5bd" };
   // salto nos ultimos 2 s -> assustada

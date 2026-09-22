@@ -76,6 +76,20 @@ class SocialLayer:
         kinds = ["ball", "cards", "roulette"]
         self.favorite = {b.name: kinds[(hash(b.name) + seed) % 3] for b in bodies}
         self.pending_spin: dict[str, tuple[float, int]] = {}   # mosca -> (t do resultado, aposta)
+        # o mundo magico: quem o robo devolve volta "iluminada" e conta; quem ouve acredita ou a acha maluca
+        self.believe_base = float(c.get("sermon_believe_base", 0.35))
+        self.sermon_cd = float(c.get("sermon_cooldown_s", 10))
+        self.rev_min = int(c.get("revolution_min_believers", 3))
+        self.prophets: set[str] = set()        # contam a historia
+        self.believers: set[str] = set()       # acreditam (e passam a contar tambem)
+        self.skeptics: set[tuple[str, str]] = set()   # (quem ouviu, quem contou): "acha maluca"
+        self.revolution_t: float = -1.0
+
+    def enlighten(self, name: str, t: float) -> None:
+        """A mosca devolvida pelo robo viu o 'mundo magico': volta pregando."""
+        self.prophets.add(name); self.believers.add(name)
+        self.busy_until[name] = t + 4.0
+        self.busy_state[name] = "pregando"
 
     def relation(self, a: str, b: str) -> Relation:
         key = (a, b) if a < b else (b, a)
@@ -94,7 +108,7 @@ class SocialLayer:
         events: list[dict] = []
         if not self.enabled:
             return overrides, events
-        alive = [b for b in bodies if b.level in ("surface", "lab") and b.state != "capturada" and not b.stuck]
+        alive = [b for b in bodies if b.level in ("surface", "lab") and b.state != "capturada" and not b.stuck and not getattr(b, "dead", False)]
         # necessidades sobem
         for b in alive:
             n = self.needs[b.name]
@@ -124,6 +138,9 @@ class SocialLayer:
                 continue
             n = self.needs[b.name]
             wish, val = max((("social", n.social), ("fun", n.fun), ("romance", n.romance), ("explore", n.explore)), key=lambda kv: kv[1])
+            if self.revolution_t >= 0 and b.name in self.believers:
+                wish, val = "explore", 1.0          # revolucao: as crentes marcham para o laboratorio
+                n.explore = 1.0
             if val < self.threshold:
                 continue
             target = None
@@ -169,6 +186,29 @@ class SocialLayer:
                 if d > 2.0:
                     continue
                 pair = f"{a.name}|{o.name}"
+                # sermao do mundo magico: profeta perto de quem ainda nao acredita
+                if d < 1.5 and (a.name in self.prophets) != (o.name in self.prophets) and t >= self.busy_until[a.name] and t >= self.busy_until[o.name]:
+                    prophet, listener = (a, o) if a.name in self.prophets else (o, a)
+                    if listener.name not in self.believers and self._cool("sermon" + pair, t, self.sermon_cd):
+                        r = self.relation(prophet.name, listener.name)
+                        p = self.believe_base + 0.4 * r.amizade + 0.3 * r.romance
+                        believed = self.rng.random() < p
+                        self.busy_until[prophet.name] = t + 3.0; self.busy_state[prophet.name] = "pregando"
+                        self.busy_until[listener.name] = t + 3.0; self.busy_state[listener.name] = "ouvindo"
+                        if believed:
+                            self.believers.add(listener.name); self.prophets.add(listener.name)
+                            self._friend(prophet, listener, 0.2)
+                            events.append({"kind": "acreditou_no_mundo_magico", "flies": [prophet.name, listener.name], "chance": round(p, 2)})
+                            if len(self.believers) >= self.rev_min and self.revolution_t < 0:
+                                self.revolution_t = t
+                                for nm in self.believers:
+                                    self.needs[nm].explore = 1.0
+                                events.append({"kind": "revolucao", "flies": sorted(self.believers)})
+                        else:
+                            r.amizade = max(0.0, r.amizade - 0.1)
+                            self.skeptics.add((listener.name, prophet.name))
+                            events.append({"kind": "achou_maluca", "flies": [listener.name, prophet.name], "chance": round(p, 2)})
+                        continue
                 if a.state == "comendo" and o.state == "comendo" and self._cool("eat" + pair, t, 15):
                     self._friend(a, o, 0.15); self.needs[a.name].social -= 0.3; self.needs[o.name].social -= 0.3
                     events.append({"kind": "comeram_juntas", "flies": [a.name, o.name]})
@@ -282,7 +322,11 @@ class SocialLayer:
         n = self.needs.get(name, Needs())
         return [n.social, n.fun, n.romance]
 
+    def faith(self) -> dict:
+        return {"profetas": sorted(self.prophets), "crentes": sorted(self.believers),
+                "ceticos": sorted(f"{a} acha {b} maluca" for a, b in self.skeptics), "revolucao_t": self.revolution_t}
+
     def summary(self) -> dict:
-        return {"fichas": dict(self.chips), "favoritos": dict(self.favorite),
+        return {"fe": self.faith(), "fichas": dict(self.chips), "favoritos": dict(self.favorite),
                 "relacoes": {f"{a}|{b}": {"amizade": round(r.amizade, 3), "romance": round(r.romance, 3)} for (a, b), r in self.rel.items()},
                 "necessidades": {k: {"social": round(v.social, 2), "fun": round(v.fun, 2), "romance": round(v.romance, 2)} for k, v in self.needs.items()}}

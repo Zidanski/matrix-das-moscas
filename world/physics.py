@@ -42,6 +42,10 @@ class FlyBody:
     stuck_since: float = -1.0
     time_in_lab: float = 0.0
     captures: int = 0
+    dead: bool = False                             # morreu de fome no subsolo (gamificado)
+    t_death: float = -1.0
+    enlightened: bool = False                      # voltou do laboratorio "iluminada" (viu o mundo magico)
+    enlightened_t: float = -1.0
 
 
 class Physics:
@@ -63,8 +67,10 @@ class Physics:
         if b.level == "fora":
             return
         self._surfaces(b)          # o que a mosca toca AGORA decide se "comer" tem efeito
-        if b.state == "capturada":
+        if b.state == "capturada" or b.dead:
             b.v = 0.0; b.omega = 0.0
+            if b.dead:
+                b.state = "morta"
             return
         if b.jump_t > 0:
             b.jump_t -= dt
@@ -230,6 +236,8 @@ class Physics:
 
     def update_hunger(self, b: FlyBody, t: float, dt: float) -> None:
         f = self.f
+        if b.dead:
+            return
         if b.state == "comendo" and b.on_surface == "sugar":
             b.hunger_gain = 1.0
             b.t_last_meal = t

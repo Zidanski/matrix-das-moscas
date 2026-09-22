@@ -89,7 +89,7 @@ def write_diary(day_index: int, seconds: float, flies: list[dict], metrics: dict
     L.append("")
     # laboratorio
     L.append("## O laboratório")
-    lab_ev = [e for e in events if e["kind"] in ("entrou_no_lab", "captura", "soltura", "robo_persegue", "robo_sai", "robo_congelado")]
+    lab_ev = [e for e in events if e["kind"] in ("entrou_no_lab", "captura", "soltura", "robo_persegue", "robo_sai", "robo_congelado", "morreu_de_fome", "voltou_iluminada")]
     if not lab_ev:
         L.append("Ninguém entrou no subsolo. Os robôs patrulharam salas vazias.")
     for e in lab_ev:
@@ -105,7 +105,23 @@ def write_diary(day_index: int, seconds: float, flies: list[dict], metrics: dict
             L.append(f"- Anoiteceu: {e.get('robot')} saiu para a manutenção da superfície aos {_fmt(e['t'], 0)} s.")
         elif e["kind"] == "robo_congelado":
             L.append(f"- Gerador desligado: {e.get('robot')} congelou aos {_fmt(e['t'], 0)} s.")
+        elif e["kind"] == "morreu_de_fome":
+            L.append(f"- {e['flies'][0]} MORREU DE FOME no laboratório aos {_fmt(e['t'], 0)} s, depois de {_fmt(e.get('sem_comer_s', 0), 0)} s sem comer. Lá embaixo não há comida.")
+        elif e["kind"] == "voltou_iluminada":
+            L.append(f"- {e['flies'][0]} voltou à superfície aos {_fmt(e['t'], 0)} s falando de um mundo mágico que viu lá embaixo.")
     L.append("")
+    # o mundo magico
+    fe = [e for e in events if e["kind"] in ("acreditou_no_mundo_magico", "achou_maluca", "revolucao")]
+    if fe:
+        L.append("## O mundo mágico")
+        for e in fe:
+            if e["kind"] == "acreditou_no_mundo_magico":
+                L.append(f"- {e['flies'][1]} ouviu {e['flies'][0]} e acreditou no mundo mágico aos {_fmt(e['t'], 0)} s (chance {e.get('chance')}).")
+            elif e["kind"] == "achou_maluca":
+                L.append(f"- {e['flies'][0]} ouviu {e['flies'][1]} e achou que ela enlouqueceu, aos {_fmt(e['t'], 0)} s.")
+            else:
+                L.append(f"- REVOLUÇÃO aos {_fmt(e['t'], 0)} s: {', '.join(e['flies'])} acreditam no mundo mágico e marcham para o laboratório.")
+        L.append("")
     # segredos
     L.append("## Segredos")
     names = {"S1": "placa dupla", "S2": "corredor de corte", "S3": "alavanca do gerador", "S4": "elevador"}

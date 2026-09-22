@@ -91,7 +91,11 @@ romance que, **só quando o cérebro está ocioso**, levam a mosca até outra
 mosca, uma bola ou um par; interações por proximidade (comer juntas, dançar,
 jogar bola, flertar com aceite ou rejeição, jogar cartas numa mesa e apostar
 fichas numa roleta de cassino) e relações por par. Cada susto registra o
-motivo (robô, bola, mosca, canção ou disparo espontâneo). Nada disso vem
+motivo (robô, bola, mosca, canção ou disparo espontâneo). No subsolo, onde
+não há comida, uma mosca pode **morrer de fome** (a capturada é exceção: o
+robô a alimenta); a devolvida pelo robô volta "iluminada", conta do mundo
+mágico, é vista como maluca ou faz crentes, e três crentes começam uma
+revolução rumo ao laboratório. Cada mosca tem um chapéu. Nada disso vem
 dos neurônios: o replay marca cada tick como reflexo (0) ou gamificado (1), o
 HUD mostra qual camada está no comando, e a tabela real/premissa acima vale
 só para a parte neural. S2, S3 e S4 ficaram mais fáceis (intervenção

@@ -1,6 +1,6 @@
 // Leitura do replay: manifest.json + frames.bin (float32 [ticks, flies, fields]) + objects.bin + events.json
 
-export interface FlyInfo { name: string; sex: "female" | "male"; color: string; hud: string; n_neurons: number; control: boolean; }
+export interface FlyInfo { name: string; sex: "female" | "male"; color: string; hud: string; n_neurons: number; control: boolean; hat?: string; }
 export interface Manifest {
   world: any; dt_s: number; seconds: number; ticks: number; n_flies: number; n_spheres: number;
   fields: string[]; flies: FlyInfo[]; spheres: any[]; cubes: any[]; prisms: any[]; patches: any[]; water: any[]; playgrounds?: any[];

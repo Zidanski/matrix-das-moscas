@@ -25,6 +25,8 @@ fly:
   jump_duration_s: 0.12
   hunger_rise_per_s: 0.03      # ganho de fome sobe 1.0 -> 2.0 em ~33 s sem comer
   hunger_max: 2.0
+  starve_after_s: 45           # NOVO (gamificado): sem comer por este tempo E no subsolo (la nao ha comida) -> morre de fome
+  starve_only_in_lab: true     # na superficie sempre ha comida por perto; capturada por robo e excecao (o robo a alimenta)
   water_trap_depth_cm: 1.0     # entrou mais que isso na agua: presa ate ser tocada
 
 objects:
@@ -79,12 +81,12 @@ senses:                        # como a fisica vira valor [0,1] por lado (antes 
   side_sharpness: 1.0          # esq/dir = 0.5 +- 0.5*sin(bearing)*sharpness
 
 flies:                         # nomes curtos, cor, sexo, semente
-  - {name: Ada,  sex: female, color: "#e63946", seed: 11}
-  - {name: Bia,  sex: female, color: "#f4a261", seed: 12}
-  - {name: Cleo, sex: female, color: "#c77dff", seed: 13}
-  - {name: Dan,  sex: male,   color: "#457b9d", seed: 21}
-  - {name: Edu,  sex: male,   color: "#2a9d8f", seed: 22}
-  - {name: Fil,  sex: male,   color: "#00b4d8", seed: 23}
+  - {name: Ada,  sex: female, color: "#e63946", seed: 11, hat: cartola}   # chapeu caracteristico (so visual)
+  - {name: Bia,  sex: female, color: "#f4a261", seed: 12, hat: palha}
+  - {name: Cleo, sex: female, color: "#c77dff", seed: 13, hat: coroa}
+  - {name: Dan,  sex: male,   color: "#457b9d", seed: 21, hat: bone}
+  - {name: Edu,  sex: male,   color: "#2a9d8f", seed: 22, hat: cowboy}
+  - {name: Fil,  sex: male,   color: "#00b4d8", seed: 23, hat: mago}
 spawn_radius_cm: 6.0           # posicoes iniciais ao acaso dentro deste raio (perto umas das outras)
 
 # -----------------------------------------------------------------------------
@@ -109,6 +111,9 @@ social:
   roulette_win_prob: 0.35        # chance de ganhar (paga 2x a aposta)
   cards_rounds_s: 4.0            # duracao de uma partida de cartas
   roulette_spin_s: 3.0           # duracao de um giro da roleta
+  sermon_believe_base: 0.35      # a mosca devolvida pelo robo volta "iluminada" e conta do mundo magico: chance-base de acreditar
+  sermon_cooldown_s: 10          # (sobe com amizade e romance; quem nao acredita passa a acha-la maluca)
+  revolution_min_believers: 3    # com esta quantidade de crentes (contando a profeta) comeca a revolucao: marcham para o laboratorio
 
 brains:
   female_full: flywire783

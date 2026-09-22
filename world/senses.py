@@ -39,7 +39,7 @@ class Senses:
 
     def sense(self, b: FlyBody, others: list, songs: dict[str, bool], t: float, dt: float, robots: list | None = None) -> dict:
         st: dict[str, tuple[float, float]] = {}
-        if b.level == "fora":
+        if b.level == "fora" or getattr(b, "dead", False):
             return st
         light = self.light(t)
         odor_scale = 1.0 - (1.0 - float(self.day["night_odor_scale"])) * (1.0 - light)

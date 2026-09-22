@@ -29,6 +29,11 @@ const EVENT_TEXT: Record<string, (e: ReplayEvent, me: string, other: string) => 
   segredo_disparado: (e) => `ACIONOU ${e.secret}!`,
   fuga: () => "FUGIU pelo elevador",
   modo_deus: (e) => `sofreu intervenção divina: ${e.comando}`,
+  morreu_de_fome: (e) => `MORREU DE FOME no laboratório, depois de ${e.sem_comer_s} s sem comer`,
+  voltou_iluminada: (e) => `voltou à superfície (${e.robot}) falando de um mundo mágico que viu lá embaixo`,
+  acreditou_no_mundo_magico: (e, me, o) => (e.flies[0] === me ? `convenceu ${o} do mundo mágico` : `ouviu ${o} e acreditou no mundo mágico`),
+  achou_maluca: (e, me, o) => (e.flies[0] === me ? `ouviu ${o} falar do mundo mágico e achou que enlouqueceu` : `contou do mundo mágico e ${o} achou que enlouqueceu`),
+  revolucao: (e) => `entrou na REVOLUÇÃO com ${e.flies.length - 1} outras: marcham para o laboratório`,
 };
 
 export function relations(rp: Replay, me: string, tUpTo: number) {
@@ -37,6 +42,9 @@ export function relations(rp: Replay, me: string, tUpTo: number) {
   for (const e of rp.events) {
     if (e.t > tUpTo || !e.flies.includes(me) || e.flies.length < 2) continue;
     if (e.kind === "jogaram_cartas") { for (const o2 of e.flies) if (o2 !== me) get(o2).amizade += 0.1; continue; }
+    if (e.kind === "revolucao") { for (const o2 of e.flies) if (o2 !== me) get(o2).amizade += 0.1; continue; }
+    if (e.kind === "acreditou_no_mundo_magico") { get(e.flies.find((f) => f !== me)!).amizade += 0.2; continue; }
+    if (e.kind === "achou_maluca") { const oo = get(e.flies.find((f) => f !== me)!); oo.amizade = Math.max(0, oo.amizade - 0.1); continue; }
     const o = e.flies.find((f) => f !== me)!;
     switch (e.kind) {
       case "encontro": get(o).amizade += 0.05; break;
@@ -92,6 +100,16 @@ export function traits(rp: Replay, k: number, i: number): string[] {
   const back = my.filter((e) => e.kind === "estado" && e.para === "re").length;
   if (back >= 5) out.push(`${name} recua muito (ré por toque na antena)`);
   if (lab / n > 0.2) out.push(`${name} é ${g("curiosa", "curioso")}: vive no laboratório`);
+  const death = my.find((e) => e.kind === "morreu_de_fome");
+  if (death) out.push(`☠️ ${name} morreu de fome no laboratório aos ${death.t.toFixed(0)} s (${death.sem_comer_s} s sem comer)`);
+  if (cnt("voltou_iluminada")) out.push(`✨ ${name} viu o mundo mágico lá embaixo e não para de falar nisso`);
+  else if (my.some((e) => e.kind === "acreditou_no_mundo_magico" && e.flies[1] === name)) out.push(`✨ ${name} acredita no mundo mágico`);
+  for (const e of my) {
+    if (e.kind === "achou_maluca" && e.flies[0] === name) out.push(`${name} acha ${e.flies[1]} ${m.flies.find((f) => f.name === e.flies[1])?.sex === "male" ? "maluco" : "maluca"}`);
+    if (e.kind === "achou_maluca" && e.flies[1] === name) out.push(`${e.flies[0]} acha ${name} ${g("maluca", "maluco")}`);
+  }
+  const rev = my.find((e) => e.kind === "revolucao");
+  if (rev) out.push(`✊ ${name} é ${g("revolucionária", "revolucionário")} (revolução aos ${rev.t.toFixed(0)} s)`);
   if (cnt("captura") > 0) out.push(`${name} já foi ${g("capturada", "capturado")} ${cnt("captura")}×`);
   if (m.flies[i].sex === "male" && cnt("flerte_aceito") + cnt("flerte_rejeitado") >= 2) out.push(`${name} é galanteador`);
   if (cnt("flerte_rejeitado") > cnt("flerte_aceito") && cnt("flerte_rejeitado") >= 2) out.push(`${name} vive levando fora`);

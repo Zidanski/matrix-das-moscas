@@ -20,7 +20,8 @@ import numpy as np
 
 STATE_IDS = {"parada": 0, "andando": 1, "re": 2, "comendo": 3, "saltando": 4, "cantando": 5,
              "presa": 6, "convulsao": 7, "capturada": 8, "grooming": 9, "lutando": 10, "cortejando": 11,
-             "dancando": 12, "flertando": 13, "passeando": 14, "jogando_bola": 15, "jogando_cartas": 16, "apostando": 17}
+             "dancando": 12, "flertando": 13, "passeando": 14, "jogando_bola": 15, "jogando_cartas": 16, "apostando": 17,
+             "morta": 18, "pregando": 19, "ouvindo": 20}
 STATE_NAMES = {v: k for k, v in STATE_IDS.items()}
 
 BASE_FIELDS = ["x", "y", "z", "heading", "v", "omega", "state", "hunger", "ignited", "spikes", "feed", "jump", "song", "court", "stuck", "level",
