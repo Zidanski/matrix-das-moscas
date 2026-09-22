@@ -52,8 +52,9 @@ visualizador, a opção **🔴 AO VIVO** conecta e mostra "pronto":
 | ↺ reiniciar | para, grava, e recomeça do zero com cérebros novos |
 | ⏭ agora | volta a acompanhar o presente depois de arrastar a barra para o passado |
 
-O tempo real desta máquina é ~0,2× (5 s de parede por segundo biológico com
-6 cérebros reduzidos): a transmissão é em câmera lenta. Cada tick chega com
+O ritmo desta máquina é ~0,3× do tempo real (seção 8; era 0,12× antes das
+otimizações): a transmissão é em câmera lenta, mas lisa a 60 fps porque o
+visualizador interpola entre os quadros. Cada tick chega com
 pose, estado, taxas, entradas, robôs, mecanismos e os disparos amostrados.
 
 ## 4. Modo Deus (⚡, só ao vivo)
@@ -103,6 +104,48 @@ Saltos: 401 em 60 s, ainda muitos; a maior parte agora vem das próprias
 aproximações a 1,5 cm/s. S2 a S4 ainda não dispararam neste dia; com moscas
 entrando no laboratório, passam a ser possíveis, e a estatística virá de mais
 dias (`matrix simulate` + `matrix report`).
+
+## 8. Desempenho: 30 fps e o ritmo do ao vivo (2026-09-22)
+
+Diagnóstico medido nesta máquina (i5-8350U, UHD 620):
+
+| Onde | Custo | Conclusão |
+|---|---|---|
+| mundo (sensores, física, social, gravação), sem cérebro | 0,7 ms por tick | irrelevante |
+| visualizador, 1024×768, sombras ligadas | 1,1 ms de `draw()` + 6,2 ms de render (55 draw calls, 77 k triângulos) | ~60 fps folgados; o dossiê aberto era o mais caro (recalculava traços a cada quadro) |
+| cérebro fêmea k=3, estímulo típico, 1 núcleo | 1,05 s de parede por s biológico (58 % dos neurônios ativos) | |
+| cérebro macho k=3, estímulo típico, 1 núcleo | 3,0 s por s biológico (88 % ativos, 28 k disparos/s) | **é o gargalo**: 10 000 passos/s × ~30 k neurônios ativos |
+
+O "travado" do ao vivo não era o visualizador: era a simulação entregando ~8
+ticks por segundo e o visualizador só redesenhando quando um tick chegava.
+Três mudanças:
+
+1. **Motor: lista de ativos ordenada** (`brain/engine.py`). A cada bloco de
+   150 passos a lista de neurônios ativos é ordenada por índice, e o laço
+   passa a ler `v/g/rfc_end` em sequência (cache). O resultado é bit a bit o
+   mesmo (cada neurônio é independente dentro do passo; a entrega dos
+   disparos segue o anel): contagens de disparo idênticas e o teste
+   disparo a disparo contra o Brian2 continua passando. Medido: fêmea k=3
+   1,05 → 0,78 s/s; macho k=3 3,0 → 1,43 s/s. `fastmath` sozinho não muda
+   nada; intercalar `v` e `g` num só array piora.
+2. **Escalonamento dinâmico** (`world/simulation.py`). Continua com no máximo
+   4 cérebros ativos, mas assim que um processo devolve, o próximo entra
+   (machos primeiro, por serem os mais lentos), em vez de dois grupos fixos
+   que esperavam o mais lento de cada grupo.
+3. **Visualizador liso a 60 fps** (`web/src/main.ts`). No ao vivo o relógio
+   anda no ritmo medido de chegada dos ticks (janela de 2 s) e o desenho
+   **interpola posição e rumo entre dois quadros gravados** (bolas e robôs
+   também; teleporte > 3 cm não interpola). Estados, taxas e sensores
+   continuam sendo os do quadro inteiro. O mesmo vale para o replay a 0,25×.
+   Texturas dos balões de pensamento ficam em cache; o dossiê é
+   recalculado a ~10 Hz. O relógio mostra os fps e, no ao vivo, o ritmo
+   "×N do tempo real".
+
+Ritmo do dia ao vivo com 6 cérebros reduzidos: **~0,3× do tempo real** (30 s biológicos em 123 s de parede, dos quais ~23 s são o arranque dos 6 processos; antes eram 60 s em 496 s, ~0,12×). O limite
+que sobra é físico: 3 machos a ~1,4 s por s biológico cada, em 4 núcleos.
+Para um ao vivo em tempo real de verdade seria preciso ou só as fêmeas (3 ×
+0,8 s/s em paralelo ≈ tempo real) ou um subcircuito menor para os machos,
+que precisaria passar de novo pelo SCREEN.
 
 ## 7. Verificação
 

@@ -53,6 +53,11 @@ def _run_chunk(n_steps, step0,
                out_idx, out_step, out_n_arr, counts,
                v0, vrst, vth, rfc_steps, D, eps, e_m, e_s, coef):
     n_act = n_act_arr[0]
+    # Lista de ativos ordenada por indice: acesso sequencial a v/g/rfc_end (cache).
+    # Nao muda resultado nenhum: cada neuronio e atualizado de forma independente
+    # dentro do passo e a entrega dos disparos segue a ordem do anel. Medido:
+    # 1,4-2x mais rapido com contagens de disparo identicas (docs/F6_ao_vivo.md).
+    act_list[:n_act] = np.sort(act_list[:n_act])
     out_n = out_n_arr[0]
     ext_ptr = ext_ptr_arr[0]
     nslots = D + 1

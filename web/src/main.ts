@@ -44,6 +44,14 @@ let replay: Replay | null = null;
 let world: World3D | null = null;
 let tick = 0, playing = false, speed = 1, selected = 0, camMode = "orbit";
 let lastWall = performance.now();
+let fps = 60, frameNo = 0;
+const liveArrivals: number[] = [];   // instantes (ms de parede) de chegada dos ultimos ticks ao vivo
+function liveRate(): number {        // ticks por segundo de parede, medidos nos ultimos 2 s
+  const now = performance.now();
+  while (liveArrivals.length && now - liveArrivals[0] > 2000) liveArrivals.shift();
+  if (liveArrivals.length < 2) return 0;
+  return (liveArrivals.length - 1) / ((liveArrivals[liveArrivals.length - 1] - liveArrivals[0]) / 1000);
+}
 
 function resize() {
   renderer.setSize(innerWidth, innerHeight);
@@ -103,7 +111,9 @@ function openLive() {
       if (!(replay instanceof LiveReplay)) return;
       replay.push(msg);
       $<HTMLInputElement>("scrub").max = String(replay.manifest.ticks - 1);
-      if (liveFollow) { tick = replay.manifest.ticks - 1; draw(); }
+      liveArrivals.push(performance.now());
+      if (liveFollow && tick > replay.manifest.ticks - 1) tick = replay.manifest.ticks - 1;
+      if (!liveFollow) draw();
       if (msg.events?.length) buildEventMarkers();
     },
     onChanges: (changes) => {
@@ -176,12 +186,25 @@ function draw() {
   if (!replay || !world) return;
   const m = replay.manifest;
   const k = Math.max(0, Math.min(m.ticks - 1, Math.floor(tick)));   // tick e fracionario durante a reproducao
+  const k1 = Math.min(m.ticks - 1, k + 1);
+  const a = k1 > k ? Math.max(0, Math.min(1, tick - k)) : 0;         // fracao entre os quadros k e k1
+  // interpolacao so de POSICAO/rumo entre dois quadros gravados (suaviza o ao vivo lento e o 0,25x);
+  // estados, taxas e sensores continuam sendo os do quadro k. Teleporte (> 3 cm) nao interpola.
+  const lerpF = (i: number, f: string) => { const v0 = replay!.get(k, i, f); if (a === 0) return v0; const v1 = replay!.get(k1, i, f); return Math.abs(v1 - v0) > 3 ? v0 : v0 + (v1 - v0) * a; };
+  const lerpA = (h0: number, h1: number) => { if (a === 0) return h0; let d = h1 - h0; d = ((d + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI; return h0 + d * a; };
   const t = k * m.dt_s;
   const light = 0.5 + 0.5 * Math.cos((2 * Math.PI * t) / m.world.arena.day_length_s);
   world.setLight(light);
-  for (let i = 0; i < m.n_spheres; i++) { const [x, y] = replay.sphere(k, i); world.setSphere(i, x, y, m.spheres[i].r); }
+  for (let i = 0; i < m.n_spheres; i++) {
+    const [x0, y0] = replay.sphere(k, i); const [x1, y1] = replay.sphere(k1, i);
+    world.setSphere(i, x0 + (x1 - x0) * a, y0 + (y1 - y0) * a, m.spheres[i].r);
+  }
   if (replay.rowLen) {
-    world.robots.forEach((rm, i) => { const r = replay!.robot(k, i); rm.update(r.x, r.y, r.lab, r.state, world!.height, t); });
+    world.robots.forEach((rm, i) => {
+      const r = replay!.robot(k, i); const r1 = replay!.robot(k1, i);
+      const same = r.lab === r1.lab && Math.hypot(r1.x - r.x, r1.y - r.y) < 3;
+      rm.update(same ? r.x + (r1.x - r.x) * a : r.x, same ? r.y + (r1.y - r.y) * a : r.y, r.lab, r.state, world!.height, t);
+    });
     const ls = replay.labState(k);
     world.setLab(ls.door, ls.hatch, ls.genOff, ls.elevator);
   }
@@ -190,8 +213,8 @@ function draw() {
   const sel = $<HTMLDivElement>("hudbody");
   let selPos = new THREE.Vector3();
   world.flies.forEach((fm, i) => {
-    const x = replay!.get(k, i, "x"), y = replay!.get(k, i, "y");
-    const heading = replay!.get(k, i, "heading");
+    const x = lerpF(i, "x"), y = lerpF(i, "y");
+    const heading = lerpA(replay!.get(k, i, "heading"), replay!.get(k1, i, "heading"));
     const state = replay!.stateNames[replay!.get(k, i, "state")] ?? "?";
     const lvl = replay!.level(k, i);
     const pos = lvl === 1 ? new THREE.Vector3(x, -world!.labDepth, -y) : world!.toThree(x, y, 0);
@@ -238,7 +261,7 @@ function draw() {
   }
   if (k % 66 === 0) buildFlyPanel();
   $<HTMLInputElement>("scrub").value = String(k);
-  if (dossierOn) drawDossier(k);
+  if (dossierOn && (frameNo % 6 === 0 || !(playing || live))) drawDossier(k);   // dossie a ~10 Hz: e o mais caro do quadro
   $("dossier").style.display = dossierOn ? "block" : "none";
   if (brainOn || matrixOn) {
     if (brainFly !== selected) { brainFly = selected; brain.load(replay, brainDir, selected); }
@@ -247,7 +270,10 @@ function draw() {
     const bs = m.brain_samples?.find((b) => b.fly === selected);
     $("braininfo").textContent = bs ? `${m.flies[selected].name}: ${bs.n} somas de ${bs.n_total} neurônios (coordenadas do próprio conectoma) · ${replay.spikes(k, selected).length} disparos nesta janela` : "sem amostra neural neste replay";
   }
-  $("clock").textContent = live ? `${t.toFixed(1).replace(".", ",")} s ao vivo` : `${t.toFixed(1).replace(".", ",")} s / ${Math.round(m.seconds)} s`;
+  const pace = live ? liveRate() * m.dt_s : 0;
+  $("clock").textContent = live
+    ? `${t.toFixed(1).replace(".", ",")} s ao vivo · ${pace.toFixed(2).replace(".", ",")}× · ${fps.toFixed(0)} fps`
+    : `${t.toFixed(1).replace(".", ",")} s / ${Math.round(m.seconds)} s · ${fps.toFixed(0)} fps`;
 }
 
 function loop() {
@@ -255,7 +281,17 @@ function loop() {
   const now = performance.now();
   const dtWall = (now - lastWall) / 1000;
   lastWall = now;
-  if (replay && playing) {
+  frameNo++;
+  if (dtWall > 0) fps = fps * 0.95 + (1 / dtWall) * 0.05;
+  if (replay && live && liveFollow && liveState !== "idle" && replay.manifest.ticks > 0) {
+    // ao vivo: o relogio anda no ritmo medido de chegada dos ticks e o desenho interpola entre
+    // quadros, entao a animacao fica lisa (60 fps) mesmo com a simulacao a 0,2x do tempo real
+    const latest = replay.manifest.ticks - 1;
+    tick += dtWall * liveRate();
+    if (latest - tick > 30) tick = latest - 2;   // atrasou demais (ex.: aba em segundo plano): pula
+    if (tick > latest) tick = latest;
+    draw();
+  } else if (replay && playing) {
     tick += (dtWall * speed) / replay.manifest.dt_s;
     if (tick >= replay.manifest.ticks) { tick = replay.manifest.ticks - 1; playing = false; $("play").textContent = "▶"; }
     draw();
@@ -344,6 +380,6 @@ $<HTMLSelectElement>("cam").onchange = (e) => { camMode = (e.target as HTMLSelec
 $("diarybtn").onclick = () => { const d = $("diary"); d.style.display = d.style.display === "block" ? "none" : "block"; };
 addEventListener("keydown", (e) => { if (e.code === "Space") { e.preventDefault(); $("play").click(); } });
 
-(window as any).__dbg = { get world() { return world; }, get replay() { return replay; }, camera, controls, get camMode() { return camMode; } };
+(window as any).__dbg = { get world() { return world; }, get replay() { return replay; }, camera, controls, renderer, draw, get camMode() { return camMode; }, get tick() { return tick; }, set tick(v: number) { tick = v; } };
 boot();
 loop();

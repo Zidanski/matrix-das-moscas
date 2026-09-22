@@ -405,14 +405,22 @@ export class FlyMesh {
     this.bubble.visible = text.length > 0;
     if (text) {
       const mat = this.bubble.material as THREE.SpriteMaterial;
-      mat.map?.dispose();
       mat.map = bubbleTexture(text);
       mat.needsUpdate = true;
     }
   }
 }
 
+const BUBBLE_CACHE = new Map<string, THREE.CanvasTexture>();   // poucas combinacoes de emojis: reaproveita
 function bubbleTexture(text: string): THREE.CanvasTexture {
+  const hit = BUBBLE_CACHE.get(text);
+  if (hit) return hit;
+  const tex = bubbleTextureNew(text);
+  if (BUBBLE_CACHE.size > 300) BUBBLE_CACHE.clear();
+  BUBBLE_CACHE.set(text, tex);
+  return tex;
+}
+function bubbleTextureNew(text: string): THREE.CanvasTexture {
   const c = document.createElement("canvas"); c.width = 256; c.height = 96;
   const g = c.getContext("2d")!;
   g.fillStyle = "rgba(255,255,255,0.92)";

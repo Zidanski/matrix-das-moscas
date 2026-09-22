@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import math
 import multiprocessing as mp
+from multiprocessing.connection import wait as mp_wait
 import time
 from dataclasses import asdict
 from pathlib import Path
@@ -284,14 +285,29 @@ class Day:
             for b, st in zip(self.bodies, states):
                 l4 = st.get("lc4", (0.0, 0.0))
                 loom_side[b.name] = l4[0] - l4[1]
-            # round-robin: ate maxc cerebros ativos por vez
+            # ate maxc cerebros ativos por vez. Escalonamento dinamico: assim que um
+            # processo devolve, o proximo entra (machos, mais lentos, primeiro), em vez
+            # de grupos fixos que esperam o mais lento de cada grupo.
             outs = [None] * len(flies)
-            for start in range(0, len(flies), maxc):
-                grp = list(range(start, min(start + maxc, len(flies))))
-                for i in grp:
-                    flies[i].send(states[i], self.bodies[i].hunger_gain)
-                for i in grp:
-                    outs[i] = flies[i].recv()
+            conns = [getattr(f, "conn", None) for f in flies]
+            if all(c is not None for c in conns) and len(flies) > maxc:
+                pending = sorted(range(len(flies)), key=lambda i: self.bodies[i].sex != "male")
+                inflight: dict = {}
+                while pending or inflight:
+                    while pending and len(inflight) < maxc:
+                        i = pending.pop(0)
+                        flies[i].send(states[i], self.bodies[i].hunger_gain)
+                        inflight[conns[i]] = i
+                    for c in mp_wait(list(inflight)):
+                        i = inflight.pop(c)
+                        outs[i] = flies[i].recv()
+            else:
+                for start in range(0, len(flies), maxc):
+                    grp = list(range(start, min(start + maxc, len(flies))))
+                    for i in grp:
+                        flies[i].send(states[i], self.bodies[i].hunger_gain)
+                    for i in grp:
+                        outs[i] = flies[i].recv()
             # camada social gamificada: assume quando o cerebro esta ocioso
             motors = {b.name: MotorState(**out["motor"]) for b, out in zip(self.bodies, outs)}
             overrides, social_events = self.social.step(self.bodies, motors, self.objects.spheres, t, self.dt)
