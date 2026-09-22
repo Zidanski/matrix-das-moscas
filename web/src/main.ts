@@ -66,8 +66,13 @@ function setLiveState(st: string) {
   const label: Record<string, string> = { idle: "pronto: clique ▶ para começar", starting: "criando os 6 cérebros…", running: "ao vivo", paused: "tempo pausado", stopping: "parando e gravando o dia…" };
   $("livestatus").textContent = "🔴 " + (label[st] ?? st);
   $("play").textContent = st === "running" ? "❚❚" : "▶";
-  if (st === "idle" && !replay) { $("load").style.display = "flex"; $("load").textContent = "AO VIVO pronto. Clique em ▶ para criar os cérebros e começar."; }
+  if (st === "idle" && !replay) {
+    $("load").style.display = "flex";
+    $("load").innerHTML = `AO VIVO pronto. <button id="bigplay">▶ começar</button>`;
+    $("bigplay").onclick = () => $("play").click();
+  }
   if (st === "starting") { $("load").style.display = "flex"; $("load").textContent = "criando os 6 cérebros (20–40 s)…"; }
+  if (st === "running" || st === "paused") $("load").style.display = "none";
 }
 
 function openLive() {
