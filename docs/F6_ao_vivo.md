@@ -71,6 +71,15 @@ necessidades 2–3× mais rápidas, limiar 0,45, esperas menores, 1,5 cm/s,
 desejo de **explorar** (rampa na superfície; porta e depois elevador no
 laboratório) e `loom_gain` 2,0.
 
+**Depois do ajuste** (`runs/teste_social/day_0500`, 60 s): 21 encontros, 7
+flertes (2 aceitos), 3 danças, 3 partidas de bola, 3 refeições a dois, S1
+disparou 2×, Ada e Fil entraram no laboratório (12 e 14 s), e já há casais em
+formação (Bia-Dan romance 0,37; Ada-Fil 0,36) e amizades (Ada-Bia 0,38).
+Saltos: 401 em 60 s, ainda muitos; a maior parte agora vem das próprias
+aproximações a 1,5 cm/s. S2 a S4 ainda não dispararam neste dia; com moscas
+entrando no laboratório, passam a ser possíveis, e a estatística virá de mais
+dias (`matrix simulate` + `matrix report`).
+
 ## 7. Verificação
 
 Testes: 39 passam (`tests/test_social.py` cobre a camada social, o modo Deus
