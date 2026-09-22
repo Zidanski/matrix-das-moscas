@@ -96,7 +96,7 @@ export function traits(rp: Replay, k: number, i: number): string[] {
   if (m.flies[i].sex === "male" && cnt("flerte_aceito") + cnt("flerte_rejeitado") >= 2) out.push(`${name} é galanteador`);
   if (cnt("flerte_rejeitado") > cnt("flerte_aceito") && cnt("flerte_rejeitado") >= 2) out.push(`${name} vive levando fora`);
   const gam = rp.fi["gamified"] !== undefined ? rp.get(k, i, "gamified") : 0;
-  out.push(gam > 0 ? `agora movida pela camada Sims (desejo)` : `agora movida pelo cérebro (reflexo)`);
+  out.push(gam > 0 ? `agora ${g("movida", "movido")} pela camada Sims (desejo)` : `agora ${g("movida", "movido")} pelo cérebro (reflexo)`);
   for (const l of likes(rp, k, i)) out.push(`gosta de ${l}`);
   return out;
 }
@@ -130,6 +130,21 @@ export function recentLog(rp: Replay, k: number, i: number, max = 14): string[] 
     const other = e.flies.find((f) => f !== name) ?? "";
     const f = EVENT_TEXT[e.kind];
     if (!f) continue;
+    if (e.kind === "salto") {
+      // sustos em sequencia (ate 3 s de intervalo) viram uma linha so, com a contagem por motivo
+      const motivos: Record<string, number> = {}; let t0 = e.t, n = 0;
+      while (j >= 0) {
+        const s2 = rp.events[j];
+        if (!s2.flies.includes(name) || s2.kind === "estado") { j--; continue; }   // eventos de outras moscas nao quebram a sequencia
+        if (s2.kind !== "salto" || t0 - s2.t > 3) break;
+        if (s2.t <= t) { motivos[s2.motivo ?? "motivo não registrado"] = (motivos[s2.motivo ?? "motivo não registrado"] ?? 0) + 1; n++; t0 = s2.t; }
+        j--;
+      }
+      j++;
+      const por = Object.entries(motivos).sort((a, b) => b[1] - a[1]).map(([mo, c]) => (c > 1 ? `${mo} ×${c}` : mo)).join("; ");
+      out.push(`${e.t.toFixed(1).replace(".", ",")} s — ${name} ${n > 1 ? `saltou de susto ${n}× (${por})` : `saltou de susto: ${por}`}`);
+      continue;
+    }
     out.push(`${e.t.toFixed(1).replace(".", ",")} s — ${name} ${f(e, name, other)}`);
   }
   return out.length ? out : ["(nada aconteceu com ela ainda)"];

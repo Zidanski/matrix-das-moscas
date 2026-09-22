@@ -30,12 +30,13 @@ export function thoughts(rp: Replay, k: number, i: number, min = 0.15): { emoji:
 export function mood(rp: Replay, k: number, i: number): Mood {
   const st = rp.stateNames[rp.get(k, i, "state")];
   const hunger = rp.get(k, i, "hunger");
+  const g = (fem: string, masc: string) => (rp.manifest.flies[i].sex === "male" ? masc : fem);
   if (rp.get(k, i, "ignited") > 0) return { emoji: "😵", word: "convulsão", color: "#e63946" };
-  if (st === "presa") return { emoji: "😰", word: "presa na água", color: "#4cc9f0" };
-  if (st === "capturada") return { emoji: "🤖", word: "capturada", color: "#adb5bd" };
+  if (st === "presa") return { emoji: "😰", word: g("presa na água", "preso na água"), color: "#4cc9f0" };
+  if (st === "capturada") return { emoji: "🤖", word: g("capturada", "capturado"), color: "#adb5bd" };
   // salto nos ultimos 2 s -> assustada
   const back = Math.max(0, k - Math.round(2 / rp.manifest.dt_s));
-  for (let j = k; j >= back; j -= 4) if (rp.get(j, i, "jump") > 0 || rp.stateNames[rp.get(j, i, "state")] === "saltando") return { emoji: "😱", word: "assustada", color: "#ff7b54" };
+  for (let j = k; j >= back; j -= 4) if (rp.get(j, i, "jump") > 0 || rp.stateNames[rp.get(j, i, "state")] === "saltando") return { emoji: "😱", word: g("assustada", "assustado"), color: "#ff7b54" };
   if (st === "comendo") return { emoji: "😋", word: "comendo, feliz", color: "#7ee787" };
   if (st === "dancando") return { emoji: "💃", word: "dançando", color: "#ffd166" };
   if (st === "jogando_bola") return { emoji: "⚽", word: "jogando bola", color: "#7ee787" };
@@ -43,11 +44,11 @@ export function mood(rp: Replay, k: number, i: number): Mood {
   if (st === "apostando") return { emoji: "🎰", word: "apostando na roleta", color: "#ff8fab" };
   if (st === "flertando") return { emoji: "😘", word: "flertando", color: "#ff8fab" };
   if (st === "cantando" || st === "cortejando") return { emoji: "😍", word: "apaixonado", color: "#ff8fab" };
-  if (hunger > 1.6) return { emoji: "😫", word: "faminta", color: "#f4a261" };
+  if (hunger > 1.6) return { emoji: "😫", word: g("faminta", "faminto"), color: "#f4a261" };
   if (hunger > 1.25) return { emoji: "😐", word: "com fome", color: "#ffd166" };
   if (st === "andando") return { emoji: "🙂", word: "passeando", color: "#a8dadc" };
   if (st === "re") return { emoji: "😬", word: "recuando", color: "#c77dff" };
-  return { emoji: "😌", word: "tranquila", color: "#e6edf3" };
+  return { emoji: "😌", word: g("tranquila", "tranquilo"), color: "#e6edf3" };
 }
 
 /** "Gostos": o que a mosca mais fez ate o instante k (derivado do replay). */
