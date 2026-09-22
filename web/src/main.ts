@@ -32,6 +32,7 @@ let brainOn = false, matrixOn = false, brainDir = "", brainFly = -1;
 let recorder: MediaRecorder | null = null;
 let live: LiveClient | null = null;
 let liveFollow = true;
+let liveState = "idle";
 let dossierOn = false;
 const LIVE = "__AO_VIVO__";
 const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 2000);
@@ -60,12 +61,23 @@ async function boot() {
   else $("load").textContent = "nenhum replay: rode `uv run matrix simulate` e recarregue";
 }
 
+function setLiveState(st: string) {
+  liveState = st;
+  const label: Record<string, string> = { idle: "pronto: clique ▶ para começar", starting: "criando os 6 cérebros…", running: "ao vivo", paused: "tempo pausado", stopping: "parando e gravando o dia…" };
+  $("livestatus").textContent = "🔴 " + (label[st] ?? st);
+  $("play").textContent = st === "running" ? "❚❚" : "▶";
+  if (st === "idle" && !replay) { $("load").style.display = "flex"; $("load").textContent = "AO VIVO pronto. Clique em ▶ para criar os cérebros e começar."; }
+  if (st === "starting") { $("load").style.display = "flex"; $("load").textContent = "criando os 6 cérebros (20–40 s)…"; }
+}
+
 function openLive() {
   if (live) live.close();
-  $("load").style.display = "flex"; $("load").textContent = "aguardando o servidor ao vivo (uv run matrix live)…";
-  brainDir = ""; brainFly = -1; replay = null;
+  document.body.classList.add("live");
+  $("load").style.display = "flex"; $("load").textContent = "conectando ao servidor ao vivo…";
+  brainDir = ""; brainFly = -1; replay = null; liveFollow = true;
   live = new LiveClient("ws://localhost:8765", {
-    onStatus: (st) => ($("livestatus").textContent = "🔴 " + st),
+    onStatus: (st) => { if (st.startsWith("erro") || st === "desconectado") $("livestatus").textContent = "🔴 " + st + " — o servidor sobe com `npm run dev`"; },
+    onState: (st) => setLiveState(st),
     onHello: (m, soma) => {
       replay = new LiveReplay(m);
       soma.forEach((arr, i) => { if (arr.length) brain.somaArrays[i] = Float32Array.from(arr); });
@@ -91,13 +103,13 @@ function openLive() {
         else if (c.type === "robot") world?.addRobot(c);
       }
     },
-    onEnd: (msg) => { $("livestatus").textContent = "🔴 dia terminou: " + msg.dir; if (msg.diary) $("diary").innerHTML = "<pre>" + String(msg.diary).replace(/[&<>]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch] as string)) + "</pre>"; },
+    onEnd: (msg) => { if (msg.diary) $("diary").innerHTML = "<pre>" + String(msg.diary).replace(/[&<>]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch] as string)) + "</pre>"; },
   });
   live.connect();
 }
 
 async function open(dir: string) {
-  if (live) { live.close(); live = null; $("livestatus").textContent = ""; }
+  if (live) { live.close(); live = null; $("livestatus").textContent = ""; document.body.classList.remove("live"); }
   $("load").style.display = "flex";
   brainDir = dir; brainFly = -1;
   replay = await loadReplay(dir);
@@ -218,7 +230,7 @@ function draw() {
     const bs = m.brain_samples?.find((b) => b.fly === selected);
     $("braininfo").textContent = bs ? `${m.flies[selected].name}: ${bs.n} somas de ${bs.n_total} neurônios (coordenadas do próprio conectoma) · ${replay.spikes(k, selected).length} disparos nesta janela` : "sem amostra neural neste replay";
   }
-  $("clock").textContent = `${t.toFixed(1).replace(".", ",")} s / ${m.seconds} s`;
+  $("clock").textContent = live ? `${t.toFixed(1).replace(".", ",")} s ao vivo` : `${t.toFixed(1).replace(".", ",")} s / ${Math.round(m.seconds)} s`;
 }
 
 function loop() {
@@ -296,7 +308,19 @@ $("recbtn").onclick = () => {
   if (!playing) $("play").click();
 };
 
-$("play").onclick = () => { if (live) { liveFollow = !liveFollow; $("play").textContent = liveFollow ? "❚❚" : "▶"; return; } playing = !playing; $("play").textContent = playing ? "❚❚" : "▶"; if (replay && tick >= replay.manifest.ticks - 1) tick = 0; };
+$("stopbtn").onclick = () => live?.send({ cmd: "stop" });
+$("resetbtn").onclick = () => { live?.send({ cmd: "reset" }); liveFollow = true; };
+$("nowbtn").onclick = () => { liveFollow = true; if (replay) { tick = replay.manifest.ticks - 1; draw(); } };
+$("play").onclick = () => {
+  if (live) {
+    // ao vivo: ▶ comeca ou retoma o TEMPO da simulacao; ❚❚ pausa de verdade
+    if (liveState === "idle") live.send({ cmd: "start" });
+    else if (liveState === "running") live.send({ cmd: "pause" });
+    else if (liveState === "paused") live.send({ cmd: "resume" });
+    liveFollow = true;
+    return;
+  }
+  playing = !playing; $("play").textContent = playing ? "❚❚" : "▶"; if (replay && tick >= replay.manifest.ticks - 1) tick = 0; };
 $<HTMLSelectElement>("speed").onchange = (e) => (speed = +(e.target as HTMLSelectElement).value);
 $<HTMLSelectElement>("cam").onchange = (e) => (camMode = (e.target as HTMLSelectElement).value);
 $("diarybtn").onclick = () => { const d = $("diary"); d.style.display = d.style.display === "block" ? "none" : "block"; };

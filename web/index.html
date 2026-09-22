@@ -37,6 +37,8 @@
       #dossier ul { margin: 0; padding-left: 16px; }
       #dossier .log li { color: var(--muted); }
       #dossier .bars { font-family: ui-monospace, monospace; white-space: pre-wrap; }
+      .liveonly { display: none; }
+      body.live .liveonly { display: inline-block; }
       #load { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--bg); color: var(--muted); font-size: 16px; }
     </style>
   </head>
@@ -48,6 +50,9 @@
       <div id="timeline">
         <select id="run"></select>
         <button id="play">▶</button>
+        <button id="stopbtn" class="liveonly" title="parar o ao vivo e gravar o dia">⏹ parar</button>
+        <button id="resetbtn" class="liveonly" title="reiniciar o ao vivo do zero">↺ reiniciar</button>
+        <button id="nowbtn" class="liveonly" title="voltar a acompanhar o presente">⏭ agora</button>
         <select id="speed"><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
         <input id="scrub" type="range" min="0" max="1" step="1" value="0" />
         <span id="clock" class="muted">0,0 s</span>

@@ -1,10 +1,28 @@
 import { defineConfig } from "vite";
 import { existsSync, readFileSync, statSync, readdirSync } from "node:fs";
 import { join, resolve, extname } from "node:path";
+import { spawn, type ChildProcess } from "node:child_process";
 
 // Serve ../runs em /runs (replays gravados pelo simulador; fora do git).
 const RUNS = resolve(__dirname, "..", "runs");
 const TYPES: Record<string, string> = { ".json": "application/json", ".bin": "application/octet-stream" };
+
+let liveProc: ChildProcess | null = null;
+function livePlugin() {
+  return {
+    name: "live-server",
+    configureServer(server: any) {
+      if (process.env.LIVE === "0" || liveProc) return;
+      // `uv run matrix live` fica esperando o 'start' do navegador; morre com o dev server
+      liveProc = spawn("uv", ["run", "matrix", "live", "--port", "8765"], { cwd: resolve(__dirname, ".."), stdio: "inherit", shell: true });
+      liveProc.on("exit", () => (liveProc = null));
+      const kill = () => { try { liveProc?.kill(); } catch {} };
+      server.httpServer?.once("close", kill);
+      process.once("exit", kill);
+      process.once("SIGINT", () => { kill(); process.exit(); });
+    },
+  };
+}
 
 function runsPlugin() {
   return {
@@ -26,4 +44,4 @@ function runsPlugin() {
   };
 }
 
-export default defineConfig({ plugins: [runsPlugin()], server: { port: 5173 } });
+export default defineConfig({ plugins: [runsPlugin(), livePlugin()], server: { port: 5173 } });

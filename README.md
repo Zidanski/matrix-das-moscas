@@ -39,7 +39,7 @@ uv run matrix simulate --days 1 --seconds 60 --brain reduced   # um dia -> runs/
 cd web; npm install; npm run dev          # visualizador em http://localhost:5173
 powershell -File scripts/run_100_days.ps1 # 100 dias (50 normais + 50 com Fil em modo controle), ~10 h
 uv run matrix report --runs runs/cem      # relatorio: docs/F5_relatorio/{relatorio.md,dias.csv,dias.png}
-uv run matrix live --seconds 300          # modo ao vivo (ws://localhost:8765) + modo Deus no visualizador
+# ao vivo: `npm run dev` ja sobe o servidor; no visualizador escolha AO VIVO e clique em play
 ```
 
 ## Métricas por dia e comparação com o controle
@@ -93,8 +93,8 @@ jogar bola, flertar com aceite ou rejeição) e relações por par. Nada disso v
 dos neurônios: o replay marca cada tick como reflexo (0) ou gamificado (1), o
 HUD mostra qual camada está no comando, e a tabela real/premissa acima vale
 só para a parte neural. S2, S3 e S4 ficaram mais fáceis (intervenção
-registrada). Também: `uv run matrix live` transmite a simulação por WebSocket
-para o visualizador (opção 🔴 AO VIVO), o botão ⚡ abre o **modo Deus** (mudo
+registrada). Também: o modo **ao vivo** (opção 🔴 AO VIVO: ▶ começa um dia sem fim,
+❚❚ pausa o tempo, ⏹ para e grava, ↺ reinicia do zero), o botão ⚡ abre o **modo Deus** (mudo
 de canção/feromônio/contato, reiniciar/salvar/restaurar cérebro, convulsão,
 comida, bola, robô, teleporte, pausa) e clicar numa mosca abre o **dossiê**
 (necessidades, traços, relações, últimos acontecimentos). Detalhes em

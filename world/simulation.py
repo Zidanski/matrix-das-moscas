@@ -382,6 +382,9 @@ class Day:
                 self.log(f"  t={t:5.1f}s  " + " ".join(f"{b.name}:{b.state[:4]}" for b in self.bodies) + f"  ({time.time()-t0:.0f} s)")
         for fl in flies:
             fl.close()
+        # dias sem fim (ao vivo) ou interrompidos: a duracao real e a gravada
+        self.seconds = float((k + 1) * self.dt) if k >= 0 else 0.0
+        manifest["seconds"] = self.seconds
         self.stats = self._metrics(near, ignited_total)
         for b in self.bodies:
             self.stats[b.name]["tempo_no_subsolo_s"] = round(b.time_in_lab, 2)
@@ -394,7 +397,7 @@ class Day:
                             self.cfg.get("interventions"))
         (self.out_dir).mkdir(parents=True, exist_ok=True)
         (self.out_dir / "diario.md").write_text(diary, encoding="utf-8")
-        d = writer.close({"metrics": self.stats, "wall_s": time.time() - t0, "secrets": secrets, "diary": diary})
+        d = writer.close({"metrics": self.stats, "wall_s": time.time() - t0, "secrets": secrets, "diary": diary, "seconds": self.seconds})
         self.log(f"[dia {self.day_index}] {self.seconds:.0f} s bio em {time.time()-t0:.0f} s de parede -> {d}")
         return d
 

@@ -27,15 +27,23 @@ Os estados novos `dancando` e `flertando` têm animação própria.
 | S3 alavanca | salto a < 0,8 cm; gerador 20 s | salto a < 1,5 cm; gerador 25 s |
 | S4 elevador | 5×5 cm em (17,−11), 3 moscas, 20 s após S3 | 8×8 cm em (14,4), ao lado da entrada do lago, **2 moscas**, 40 s após S3 |
 
-## 3. Modo ao vivo (`uv run matrix live`)
+## 3. Modo ao vivo de verdade (controlado pela tela)
 
-`scripts/live.py` roda um dia normal (gravado em `runs/live/`) e transmite
-cada tick por WebSocket (`ws://localhost:8765`): pose, estado, taxas,
-entradas, robôs, mecanismos e os disparos amostrados dos 20 000 somas. No
-visualizador, a opção **🔴 AO VIVO** do seletor conecta; o botão de play vira
-"acompanhar ao vivo" e a barra de tempo permite voltar no que já passou. O
-tempo real desta máquina é ~0,2× (5 s de parede por segundo biológico com 6
-cérebros reduzidos): a transmissão é em câmera lenta, e o HUD mostra isso.
+`npm run dev` em `web/` sobe, além do visualizador, o servidor ao vivo
+(`uv run matrix live`, WebSocket em `localhost:8765`), que fica esperando. No
+visualizador, a opção **🔴 AO VIVO** conecta e mostra "pronto":
+
+| Botão | Efeito |
+|---|---|
+| ▶ | cria os 6 cérebros (20–40 s) e começa um dia **sem fim**, em t = 0 |
+| ❚❚ / ▶ | pausa e retoma o **tempo da simulação** (as moscas congelam) |
+| ⏹ parar | encerra o dia, grava o replay em `runs/live/day_XXXX` e mostra o diário |
+| ↺ reiniciar | para, grava, e recomeça do zero com cérebros novos |
+| ⏭ agora | volta a acompanhar o presente depois de arrastar a barra para o passado |
+
+O tempo real desta máquina é ~0,2× (5 s de parede por segundo biológico com
+6 cérebros reduzidos): a transmissão é em câmera lenta. Cada tick chega com
+pose, estado, taxas, entradas, robôs, mecanismos e os disparos amostrados.
 
 ## 4. Modo Deus (⚡, só ao vivo)
 

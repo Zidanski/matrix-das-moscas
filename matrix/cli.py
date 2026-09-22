@@ -133,8 +133,7 @@ def main(argv: list[str] | None = None) -> int:
     rp.add_argument("--out", default="docs/F5_relatorio")
     rp.set_defaults(func=cmd_report)
 
-    lv = sub.add_parser("live", help="modo ao vivo: transmite a simulacao por WebSocket e aceita o modo Deus")
-    lv.add_argument("--seconds", type=float, default=300.0)
+    lv = sub.add_parser("live", help="modo ao vivo: servidor WebSocket controlado pelo visualizador (start/pause/stop/reset + modo Deus)")
     lv.add_argument("--brain", choices=["reduced", "full"], default="reduced")
     lv.add_argument("--port", type=int, default=8765)
     lv.add_argument("--out", default="runs/live")

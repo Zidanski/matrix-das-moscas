@@ -42,6 +42,7 @@ export type LiveHandlers = {
   onChanges: (changes: any[]) => void;
   onEnd: (msg: any) => void;
   onStatus: (s: string) => void;
+  onState?: (state: string, msg: any) => void;
 };
 
 export class LiveClient {
@@ -59,6 +60,7 @@ export class LiveClient {
       if (m.type === "hello") this.h.onHello(m, m.soma);
       else if (m.type === "tick") { if (m.changes?.length) this.h.onChanges(m.changes); this.h.onTick(m); }
       else if (m.type === "end") this.h.onEnd(m);
+      else if (m.type === "status") this.h.onState?.(m.state, m);
     };
   }
   send(cmd: any) { this.ws?.readyState === 1 && this.ws.send(JSON.stringify(cmd)); }
