@@ -47,13 +47,19 @@ export type LiveHandlers = {
 
 export class LiveClient {
   ws: WebSocket | null = null;
+  attempts = 0;
+  closed = false;
+  retryTimer: any = null;
   constructor(public url: string, public h: LiveHandlers) {}
   connect() {
-    this.h.onStatus("conectando…");
+    if (this.closed) return;
+    this.attempts++;
+    this.h.onStatus(this.attempts === 1 ? "conectando…" : `conectando… (tentativa ${this.attempts}; o servidor sobe com npm run dev ou uv run matrix live)`);
     const ws = new WebSocket(this.url);
     this.ws = ws;
-    ws.onopen = () => this.h.onStatus("ao vivo");
-    ws.onclose = () => this.h.onStatus("desconectado");
+    ws.onopen = () => { this.attempts = 0; this.h.onStatus("ao vivo"); };
+    // servidor fora do ar (ainda subindo, ou caiu): tenta de novo a cada 2 s ate conseguir
+    ws.onclose = () => { this.h.onStatus("desconectado"); if (!this.closed) this.retryTimer = setTimeout(() => this.connect(), 2000); };
     ws.onerror = () => this.h.onStatus("erro: servidor ao vivo não encontrado (uv run matrix live)");
     ws.onmessage = (ev) => {
       const m = JSON.parse(ev.data);
@@ -64,5 +70,5 @@ export class LiveClient {
     };
   }
   send(cmd: any) { this.ws?.readyState === 1 && this.ws.send(JSON.stringify(cmd)); }
-  close() { this.ws?.close(); this.ws = null; }
+  close() { this.closed = true; clearTimeout(this.retryTimer); this.ws?.close(); this.ws = null; }
 }

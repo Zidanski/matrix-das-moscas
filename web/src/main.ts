@@ -94,7 +94,10 @@ function openLive() {
   $("flies").innerHTML = "";
   $("events").innerHTML = "";
   live = new LiveClient("ws://localhost:8765", {
-    onStatus: (st) => { if (st.startsWith("erro") || st === "desconectado") $("livestatus").textContent = "🔴 " + st + " — o servidor sobe com `npm run dev`"; },
+    onStatus: (st) => {
+      if (st.startsWith("erro") || st === "desconectado") $("livestatus").textContent = "🔴 " + st + " — o servidor sobe com `npm run dev`";
+      else if (st.startsWith("conectando")) { $("livestatus").textContent = "🔴 " + st; $("load").textContent = st.includes("tentativa") ? "servidor ao vivo não respondeu; tentando de novo…" : "conectando ao servidor ao vivo…"; }
+    },
     onState: (st) => setLiveState(st),
     onHello: (m, soma) => {
       replay = new LiveReplay(m);

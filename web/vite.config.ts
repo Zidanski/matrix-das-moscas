@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import { existsSync, readFileSync, statSync, readdirSync } from "node:fs";
 import { join, resolve, extname } from "node:path";
-import { spawn, type ChildProcess } from "node:child_process";
+import { spawn, execSync, type ChildProcess } from "node:child_process";
 
 // Serve ../runs em /runs (replays gravados pelo simulador; fora do git).
 const RUNS = resolve(__dirname, "..", "runs");
@@ -13,10 +13,23 @@ function livePlugin() {
     name: "live-server",
     configureServer(server: any) {
       if (process.env.LIVE === "0" || liveProc) return;
+      // um servidor antigo ainda na porta (dev server anterior encerrado sem matar a arvore) ficaria com codigo velho:
+      // derruba-o antes de subir o novo
+      const freePort = () => {
+        try {
+          if (process.platform === "win32") execSync(`powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 8765 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }"`, { stdio: "ignore" });
+          else execSync("lsof -ti tcp:8765 | xargs -r kill", { stdio: "ignore", shell: "/bin/sh" });
+        } catch {}
+      };
+      freePort();
       // `uv run matrix live` fica esperando o 'start' do navegador; morre com o dev server
       liveProc = spawn("uv", ["run", "matrix", "live", "--port", "8765"], { cwd: resolve(__dirname, ".."), stdio: "inherit", shell: true });
       liveProc.on("exit", () => (liveProc = null));
-      const kill = () => { try { liveProc?.kill(); } catch {} };
+      const kill = () => {
+        // shell:true -> kill() mataria so o cmd.exe; mata a arvore inteira (uv -> matrix.exe -> python)
+        try { if (process.platform === "win32" && liveProc?.pid) execSync(`taskkill /PID ${liveProc.pid} /T /F`, { stdio: "ignore" }); else liveProc?.kill(); } catch {}
+        freePort();
+      };
       server.httpServer?.once("close", kill);
       process.once("exit", kill);
       process.once("SIGINT", () => { kill(); process.exit(); });
