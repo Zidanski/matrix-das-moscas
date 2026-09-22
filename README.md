@@ -50,7 +50,12 @@ controle (`--control Fil`) roda uma das moscas com o conectoma embaralhado
 preservando grau; o relatório compara as duas condições. Se em 100 dias
 nenhum segredo disparar, os ajustes de distâncias e ganhos entram em
 `interface/config.yaml` → `interventions` como "intervenção do laboratório".
-Resultado dos 100 dias: `docs/F5_relatorio/relatorio.md` (gerado ao fim do lote).
+Resultado dos 133 dias (100 de 30 s + 33 de 60 s; `docs/F5_relatorio/relatorio.md`, `dias.png`):
+encontros a < 1 cm 1,5 por minuto biológico, cortes iniciadas ~86, saltos ~170, entradas no
+laboratório 0,56, capturas 0,02 (normal) contra 0,35 (Fil embaralhado: 18 capturas e as únicas
+convulsões, porque o embaralhamento destrói o reflexo looming → fibra gigante). S1 disparou 16
+vezes, S3 três vezes (Dan, sempre depois de afundar pelo lago), S2 e S4 nunca. **Nenhuma mosca
+escapou.** Detalhes e a intervenção proposta (não aplicada) em `docs/F5_final.md`.
 
 ## O que é real / o que é premissa nossa
 

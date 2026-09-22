@@ -27,22 +27,24 @@ def collect(root: Path) -> pd.DataFrame:
         songs = sum(1 for e in ev if e["kind"] == "estado" and e.get("para") == "cantando")
         control = [f["name"] for f in m["flies"] if f.get("control")]
         sec = met.get("_dia", {}).get("segredos", {})
+        # tudo normalizado para 60 s biologicos (dias podem ter 30 ou 60 s)
+        k = 60.0 / float(m["seconds"])
         row = {"day": m.get("day_index"), "dir": str(d), "seconds": m["seconds"], "wall_s": round(m.get("wall_s", 0)),
                "control": control[0] if control else "", "brain_mode": m.get("brain_mode")}
         for f in m["flies"]:
             mm = met.get(f["name"], {})
-            row[f"dist_{f['name']}"] = mm.get("distancia_cm", 0)
-            row[f"eat_{f['name']}"] = mm.get("tempo_comendo_s", 0)
-            row[f"near_{f['name']}"] = mm.get("tempo_perto_de_outra_s", 0)
-            row[f"ign_{f['name']}"] = mm.get("ticks_convulsao", 0)
-            row[f"lab_{f['name']}"] = mm.get("tempo_no_subsolo_s", 0)
+            row[f"dist_{f['name']}"] = mm.get("distancia_cm", 0) * k
+            row[f"eat_{f['name']}"] = mm.get("tempo_comendo_s", 0) * k
+            row[f"near_{f['name']}"] = mm.get("tempo_perto_de_outra_s", 0) * k
+            row[f"ign_{f['name']}"] = mm.get("ticks_convulsao", 0) * k
+            row[f"lab_{f['name']}"] = mm.get("tempo_no_subsolo_s", 0) * k
             row[f"cap_{f['name']}"] = mm.get("capturas", 0)
         dia = met.get("_dia", {})
-        row.update({"encontros": kinds.get("encontro", 0), "encontros_mf_s": dia.get("encontros_macho_femea_s", 0),
-                    "pares_mf": dia.get("pares_mf_que_se_encontraram", 0), "cantos": songs, "saltos": kinds.get("salto", 0),
-                    "capturas": kinds.get("captura", 0), "entradas_lab": kinds.get("entrou_no_lab", 0) + kinds.get("afundou", 0),
-                    "esferas": dia.get("esferas_empurradas", 0), "presa_agua": kinds.get("presa_na_agua", 0),
-                    "convulsao_ticks": sum(met.get(f["name"], {}).get("ticks_convulsao", 0) for f in m["flies"]),
+        row.update({"encontros": kinds.get("encontro", 0) * k, "encontros_mf_s": dia.get("encontros_macho_femea_s", 0) * k,
+                    "pares_mf": dia.get("pares_mf_que_se_encontraram", 0) * k, "cantos": songs * k, "saltos": kinds.get("salto", 0) * k,
+                    "capturas": kinds.get("captura", 0) * k, "entradas_lab": (kinds.get("entrou_no_lab", 0) + kinds.get("afundou", 0)) * k,
+                    "esferas": dia.get("esferas_empurradas", 0) * k, "presa_agua": kinds.get("presa_na_agua", 0) * k,
+                    "convulsao_ticks": sum(met.get(f["name"], {}).get("ticks_convulsao", 0) for f in m["flies"]) * k,
                     "fugiram": len(dia.get("fugiram", []))})
         for k in ("S1", "S2", "S3", "S4"):
             row[f"{k}_quase"] = sec.get(k, {}).get("quase", 0)
@@ -58,10 +60,12 @@ def summarize(df: pd.DataFrame) -> str:
         return "Nenhum dia encontrado."
     flies = sorted({c[5:] for c in df.columns if c.startswith("dist_")})
     L = [f"# Relatório de {len(df)} dias simulados", ""]
-    L.append(f"Dias {int(df.day.min())}–{int(df.day.max())}, {df.seconds.iloc[0]:.0f} s biológicos cada, cérebro `{df.brain_mode.iloc[0]}`; "
-             f"{df.wall_s.sum()/3600:.1f} h de parede no total ({df.wall_s.mean()/60:.1f} min por dia).")
+    secs = df.seconds.value_counts().to_dict()
+    L.append(f"Dias {int(df.day.min())}–{int(df.day.max())}: " + ", ".join(f"{n} dias de {int(s)} s biológicos" for s, n in sorted(secs.items())) +
+             f"; cérebro `{df.brain_mode.iloc[0]}`; {df.wall_s.sum()/3600:.1f} h de parede no total. "
+             "Todas as contagens abaixo estão normalizadas para 60 s biológicos por dia.")
     L.append("")
-    L.append("## Por dia (médias ± desvio)")
+    L.append("## Por dia (médias ± desvio, por 60 s biológicos)")
     L.append("")
     L.append("| Métrica | Normal | Controle (Fil embaralhado) |")
     L.append("|---|---|---|")
