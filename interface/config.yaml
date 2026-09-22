@@ -121,3 +121,6 @@ interventions:
   - date: 2026-09-22
     what: "GAMIFICACAO (pedido do dono): camada social com necessidades e desejos assume o movimento quando o cerebro esta ocioso; interacoes comer juntas/dancar/bola/flerte; S2 (4 cm, femea a 12 cm, 20 s), S3 (1,5 cm, 25 s), S4 (zona 8x8 em (14,4), 2 moscas, 40 s)"
     why: "133 dias sem fuga e com poucas interacoes; o dono pediu um mundo mais vivo e fugas mais frequentes, aceitando que nem tudo venha do cerebro. Tudo marcado como gamificado no replay e no README"
+  - date: 2026-09-22
+    what: "camada social 2x-3x mais rapida (necessidades, limiar 0,45, esperas menores, 1,5 cm/s), desejo de EXPLORAR (rampa -> porta -> elevador), loom_gain 1,0 -> 2,0"
+    why: "dia ao vivo de 240 s: so 6 interacoes sociais e 1251 saltos em cascata; ninguem entrou no laboratorio em 4 min. Fugas exigem moscas no subsolo"

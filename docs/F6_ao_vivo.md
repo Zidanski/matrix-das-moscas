@@ -58,7 +58,20 @@ vive no laboratório"); relações ("Fil tem interesse romântico em Ada ♥♥"
 empurrou bola_amarga_1", "foi perseguido por R2", "ACIONOU S3!"). Tudo é
 derivado dos eventos e campos gravados, no replay ou ao vivo.
 
-## 6. Verificação
+## 6. Primeiro dia ao vivo (240 s, com 3 comandos divinos) e o ajuste seguinte
+
+`runs/live/day_0000`: 9 encontros (4 macho-fêmea), 2 flertes rejeitados (Dan e
+Edu levaram fora de Ada), 2 danças (Ada com Edu, Dan com Fil), 1 partida de
+bola, 1 refeição a dois; amizades nascendo (Ada-Edu 0,20, Dan-Fil 0,20,
+Bia-Cleo 0,13). Machos andaram ~300 cm, Bia e Cleo comeram 175 s cada. Dois
+freios ficaram claros: **1 251 saltos em cascata** (mosca saltando nunca fica
+ociosa, então a camada não assume) e **ninguém entrou no laboratório** em 4
+minutos (S2 a S4 dependem disso). Ajuste registrado como intervenção:
+necessidades 2–3× mais rápidas, limiar 0,45, esperas menores, 1,5 cm/s,
+desejo de **explorar** (rampa na superfície; porta e depois elevador no
+laboratório) e `loom_gain` 2,0.
+
+## 7. Verificação
 
 Testes: 39 passam (`tests/test_social.py` cobre a camada social, o modo Deus
 e um dia com fantoches ociosos). Servidor ao vivo testado com cliente Python

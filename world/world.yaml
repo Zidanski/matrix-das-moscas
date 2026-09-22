@@ -70,7 +70,7 @@ senses:                        # como a fisica vira valor [0,1] por lado (antes 
   cva_sigma_cm: 3.0            # perfil de odor do macho (cVA) em volta dele
   cva_strength: 1.0
   song_radius_cm: 4.0          # cancao audivel ate aqui (1/(1+d))
-  loom_gain: 1.0               # valor = min(1, d(theta)/dt / loom_gain) [rad/s]. Era 0,25: no mundo de 25 cm cada salto virava vulto para todas e havia ~450 saltos/min (intervencao registrada em interface/config.yaml)
+  loom_gain: 2.0               # valor = min(1, d(theta)/dt / loom_gain) [rad/s]. Era 0,25 e depois 1,0 (dia ao vivo de 240 s: 1251 saltos): no mundo de 25 cm cada salto virava vulto para todas e havia ~450 saltos/min (intervencao registrada em interface/config.yaml)
   small_object_radius_cm: 6.0  # LC11: outra mosca em movimento ate aqui
   small_object_min_speed_cm_s: 0.2
   side_sharpness: 1.0          # esq/dir = 0.5 +- 0.5*sin(bearing)*sharpness
@@ -89,14 +89,19 @@ spawn_radius_cm: 6.0           # posicoes iniciais ao acaso dentro deste raio (p
 # -----------------------------------------------------------------------------
 social:
   enabled: true
-  social_rise_per_s: 0.012
-  fun_rise_per_s: 0.010
-  romance_rise_male_per_s: 0.012
-  romance_rise_female_per_s: 0.006
-  wish_threshold: 0.6            # necessidade acima disso vira desejo
-  idle_ticks_before_wish: 20     # cerebro ocioso por 0,3 s antes de a camada assumir
-  walk_cm_s: 1.0
-  turn_gain: 2.0
+  social_rise_per_s: 0.03        # (era 0,012) o dono pediu interacoes frequentes
+  fun_rise_per_s: 0.025          # (era 0,010)
+  romance_rise_male_per_s: 0.03  # (era 0,012)
+  romance_rise_female_per_s: 0.015
+  explore_rise_per_s: 0.02       # NOVO: curiosidade leva a rampa do laboratorio (e, la dentro, a porta e ao elevador)
+  wish_threshold: 0.45           # (era 0,6)
+  idle_ticks_before_wish: 8      # (era 20) cerebro ocioso por 0,12 s antes de a camada assumir
+  walk_cm_s: 1.5                 # (era 1,0)
+  turn_gain: 2.5
+  flirt_accept_base: 0.5         # (era 0,4)
+  cooldown_flirt_s: 8            # (era 12)
+  cooldown_dance_s: 10           # (era 20)
+  cooldown_meet_s: 5             # (era 10)
 
 brains:
   female_full: flywire783
