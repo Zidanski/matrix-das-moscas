@@ -81,6 +81,9 @@ function openLive() {
   $<HTMLSelectElement>("run").value = LIVE;
   $("load").style.display = "flex"; $("load").textContent = "conectando ao servidor ao vivo…";
   brainDir = ""; brainFly = -1; replay = null; liveFollow = true;
+  $("hudbody").innerHTML = '<span class="muted">ao vivo: nenhum dia em curso ainda</span>';
+  $("flies").innerHTML = "";
+  $("events").innerHTML = "";
   live = new LiveClient("ws://localhost:8765", {
     onStatus: (st) => { if (st.startsWith("erro") || st === "desconectado") $("livestatus").textContent = "🔴 " + st + " — o servidor sobe com `npm run dev`"; },
     onState: (st) => setLiveState(st),
