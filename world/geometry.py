@@ -85,6 +85,15 @@ class Patch:
 
 
 @dataclass
+class Playground:
+    name: str
+    x: float
+    y: float
+    r: float
+    kind: str           # cards | roulette
+
+
+@dataclass
 class Water:
     name: str
     x: float
@@ -99,6 +108,7 @@ class Objects:
     prisms: list = field(default_factory=list)
     patches: list = field(default_factory=list)
     water: list = field(default_factory=list)
+    playgrounds: list = field(default_factory=list)
 
     @classmethod
     def from_config(cls, cfg: dict) -> "Objects":
@@ -109,6 +119,7 @@ class Objects:
             prisms=[Prism(**p) for p in o.get("prisms", [])],
             patches=[Patch(**p) for p in o.get("patches", [])],
             water=[Water(**w) for w in o.get("water", [])],
+            playgrounds=[Playground(**p) for p in o.get("playgrounds", [])],
         )
 
     def odor_sources(self) -> list[tuple[str, float, float, float, float]]:

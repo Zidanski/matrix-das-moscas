@@ -14,10 +14,21 @@ explícita de **gamificar** o que não vem do cérebro.
 | toda leitura sensorial (odor, contato, looming, cVA, canção) | quando o cérebro fica ocioso por 0,3 s e uma necessidade passa de 0,6, a camada leva a mosca até o alvo (outra mosca, uma bola, um par) a 1 cm/s |
 | | interações por proximidade: **comeram juntas**, **dançaram** (3 s), **jogaram bola** (chutou e outra recebeu em 6 s), **flerte** aceito ou rejeitado (2,5 s; aceite depende do romance da fêmea e da amizade do par) |
 | | relações por par (amizade, romance) que crescem com as interações e decaem devagar |
+| | **brinquedos** (`objects.playgrounds` no `world.yaml`): mesa de cartas (−8,−3) e roleta de cassino (7,8). Cada mosca tem um passatempo favorito (bola, cartas ou roleta, sorteado pela semente). Com 2+ moscas na mesa: **jogaram cartas** (4 s, vencedor sorteado leva 1 ficha de cada). Na roleta com diversão > 0,3 e fichas: **apostou** 1–3 fichas, giro de 3 s, 35 % de chance de dobrar. Todas começam com 10 fichas |
 
 Cada tick do replay tem o campo `gamified` (0 = reflexo, 1 = camada Sims) e
 as três necessidades; o HUD e o dossiê mostram qual camada está no comando.
-Os estados novos `dancando` e `flertando` têm animação própria.
+Os estados novos `dancando`, `flertando`, `jogando_bola` (investida do chute),
+`jogando_cartas` (cartas na mão) e `apostando` (pulinhos de torcida; a roleta
+gira de verdade enquanto alguém aposta) têm animação própria.
+
+**Por que a mosca se assustou.** Cada evento `salto` grava um `motivo`, lido do
+que o sensor estava vendo naquele tick (`world/senses.py` guarda a fonte de
+looming mais forte): "vulto de R2 (robô)", "vulto de bola_amarga_1 (bola
+rolando)", "vulto de Dan (mosca se aproximando)", "barulho da canção perto da
+antena" ou "sobressalto espontâneo (disparo isolado da fibra gigante)". O
+dossiê mostra o motivo em cada susto e o motivo mais frequente vira traço
+("o que mais assusta Ada: vulto de R3"). O diário lista os motivos do dia.
 
 ## 2. Fugas mais frequentes (intervenções registradas em `config.yaml`)
 
@@ -59,9 +70,14 @@ mosca como "sofreu intervenção divina".
 
 ## 5. Dossiê (clique na mosca)
 
-Barras de fome, social, diversão e romance; traços derivados do histórico
+Barras de fome, social, diversão, romance e fichas; traços derivados do histórico
 ("gosta de água", "assustadiça", "galanteador", "vive levando fora", "curiosa:
-vive no laboratório"); relações ("Fil tem interesse romântico em Ada ♥♥",
+vive no laboratório", "viciada em roleta", "sortuda", "boa de cartas", "recua
+muito"). Regra de coerência: **"gosta de" só aparece para o que é prazeroso ou
+escolhido** (comer, passear, cantar, dançar, bola, cartas, roleta). Susto e ré
+são reflexos de defesa, então nunca entram nos gostos: viram traços
+("assustadiça"/"nervosa"/"destemida", "recua muito"). Os adjetivos concordam
+com o sexo da mosca; relações ("Fil tem interesse romântico em Ada ♥♥",
 "melhor amigo de Dan"); e os últimos 14 acontecimentos em texto ("14,3 s — Dan
 empurrou bola_amarga_1", "foi perseguido por R2", "ACIONOU S3!"). Tudo é
 derivado dos eventos e campos gravados, no replay ou ao vivo.

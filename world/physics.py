@@ -36,7 +36,8 @@ class FlyBody:
     on_surface: str = "none"                       # sugar|bitter|water|none (o que pisa/toca)
     idx: int = 0
     level: str = "surface"                         # surface | lab | fora (fugiu)
-    state_override: str = ""                       # camada social: dancando | flertando
+    state_override: str = ""                       # camada social: dancando | flertando | jogando_*
+    loom_source: tuple = ("", 0.0)                 # (quem, intensidade) do maior vulto na janela
     wish: str = ""                                 # desejo gamificado em curso
     stuck_since: float = -1.0
     time_in_lab: float = 0.0

@@ -51,9 +51,15 @@ def write_diary(day_index: int, seconds: float, flies: list[dict], metrics: dict
     else:
         mf = [e for e in enc if e.get("sexos") in ("fm", "mf")]
         L.append(f"{len(enc)} encontros, {len(mf)} entre macho e fêmea: " + "; ".join(f"{e['flies'][0]} e {e['flies'][1]} aos {_fmt(e['t'], 0)} s" for e in enc[:6]) + ("…" if len(enc) > 6 else "") + ".")
-    soc = Counter(e["kind"] for e in events if e["kind"] in ("comeram_juntas", "dancaram", "jogaram_bola", "flerte_aceito", "flerte_rejeitado"))
+    soc = Counter(e["kind"] for e in events if e["kind"] in ("comeram_juntas", "dancaram", "jogaram_bola", "flerte_aceito", "flerte_rejeitado", "jogaram_cartas", "apostou", "ganhou_na_roleta", "perdeu_na_roleta"))
     if soc:
-        L.append("Vida social (camada gamificada): " + ", ".join(f"{ {'comeram_juntas': 'refeições a dois', 'dancaram': 'danças', 'jogaram_bola': 'partidas de bola', 'flerte_aceito': 'flertes aceitos', 'flerte_rejeitado': 'flertes rejeitados'}[k]} {v}" for k, v in soc.items()) + ".")
+        nomes = {'comeram_juntas': 'refeições a dois', 'dancaram': 'danças', 'jogaram_bola': 'partidas de bola', 'flerte_aceito': 'flertes aceitos', 'flerte_rejeitado': 'flertes rejeitados',
+                 'jogaram_cartas': 'partidas de cartas', 'apostou': 'apostas na roleta', 'ganhou_na_roleta': 'vitórias na roleta', 'perdeu_na_roleta': 'derrotas na roleta'}
+        L.append("Vida social (camada gamificada): " + ", ".join(f"{nomes[k]} {v}" for k, v in soc.items()) + ".")
+        for e in [e for e in events if e["kind"] == "jogaram_cartas"][:3]:
+            L.append(f"- Partida de cartas entre {', '.join(e['flies'])} aos {_fmt(e['t'], 0)} s: {e.get('vencedor')} levou as fichas.")
+        for e in [e for e in events if e["kind"] == "ganhou_na_roleta"][:3]:
+            L.append(f"- {e['flies'][0]} ganhou {e.get('fichas')} fichas na roleta aos {_fmt(e['t'], 0)} s (saldo {e.get('saldo')}).")
         for e in [e for e in events if e["kind"] in ("flerte_aceito", "flerte_rejeitado", "dancaram")][:6]:
             verb = {"flerte_aceito": "flertou com", "flerte_rejeitado": "levou um fora de", "dancaram": "dançou com"}[e["kind"]]
             L.append(f"- {e['flies'][0]} {verb} {e['flies'][1]} aos {_fmt(e['t'], 0)} s.")
@@ -67,6 +73,8 @@ def write_diary(day_index: int, seconds: float, flies: list[dict], metrics: dict
     jumps = Counter(e["flies"][0] for e in events if e["kind"] == "salto")
     if jumps:
         L.append("Saltos de fuga: " + ", ".join(f"{k} {v}×" for k, v in jumps.most_common()) + (". Uma cascata: o salto de uma vira vulto para as outras." if sum(jumps.values()) > 20 else "."))
+        motivos = Counter(e.get("motivo", "?") for e in events if e["kind"] == "salto")
+        L.append("Motivos dos sustos: " + "; ".join(f"{m_} ({v}×)" for m_, v in motivos.most_common(4)) + ".")
     else:
         L.append("Nenhum salto de fuga.")
     for e in events:

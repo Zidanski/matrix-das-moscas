@@ -65,3 +65,25 @@ def test_day_with_idle_puppets_has_gamified_movement_and_god_commands(tmp_path):
     kinds = {e["kind"] for e in rp.events}
     assert "modo_deus" in kinds
     assert "social" in day.stats["_dia"]
+
+
+def test_cards_and_roulette_playgrounds():
+    from world.geometry import load_world
+    w = load_world()
+    table = next(p for p in w["objects"]["playgrounds"] if p["kind"] == "cards")
+    wheel = next(p for p in w["objects"]["playgrounds"] if p["kind"] == "roulette")
+    a = FlyBody("a", "female", table["x"] + 0.5, table["y"], 0.0)
+    b = FlyBody("b", "male", table["x"] - 0.5, table["y"], 0.0)
+    c = FlyBody("c", "male", wheel["x"] + 0.5, wheel["y"], 0.0)
+    layer = SocialLayer(w, [a, b, c], seed=2)
+    layer.needs["c"].fun = 0.9
+    motors = {n: MotorState() for n in "abc"}
+    kinds = set()
+    for k in range(400):
+        _, ev = layer.step([a, b, c], motors, [], k * 0.015, 0.015)
+        kinds |= {e["kind"] for e in ev}
+    assert "jogaram_cartas" in kinds and "apostou" in kinds
+    assert kinds & {"ganhou_na_roleta", "perdeu_na_roleta"}
+    assert layer.busy_state["a"] == "jogando_cartas" or layer.busy_state["b"] == "jogando_cartas" or "jogaram_cartas" in kinds
+    s = layer.summary()
+    assert "fichas" in s and sum(s["fichas"].values()) >= 0

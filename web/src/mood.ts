@@ -38,6 +38,9 @@ export function mood(rp: Replay, k: number, i: number): Mood {
   for (let j = k; j >= back; j -= 4) if (rp.get(j, i, "jump") > 0 || rp.stateNames[rp.get(j, i, "state")] === "saltando") return { emoji: "😱", word: "assustada", color: "#ff7b54" };
   if (st === "comendo") return { emoji: "😋", word: "comendo, feliz", color: "#7ee787" };
   if (st === "dancando") return { emoji: "💃", word: "dançando", color: "#ffd166" };
+  if (st === "jogando_bola") return { emoji: "⚽", word: "jogando bola", color: "#7ee787" };
+  if (st === "jogando_cartas") return { emoji: "🃏", word: "jogando cartas", color: "#ffd166" };
+  if (st === "apostando") return { emoji: "🎰", word: "apostando na roleta", color: "#ff8fab" };
   if (st === "flertando") return { emoji: "😘", word: "flertando", color: "#ff8fab" };
   if (st === "cantando" || st === "cortejando") return { emoji: "😍", word: "apaixonado", color: "#ff8fab" };
   if (hunger > 1.6) return { emoji: "😫", word: "faminta", color: "#f4a261" };
@@ -61,12 +64,16 @@ export function likes(rp: Replay, k: number, i: number): string[] {
     dist += Math.hypot(x - px, y - py); px = x; py = y;
   }
   const out: string[] = [];
-  const eat = (counts["comendo"] ?? 0) * dt, walk = (counts["andando"] ?? 0) * dt, jump = (counts["saltando"] ?? 0) * dt, back = (counts["re"] ?? 0) * dt, sing = (counts["cantando"] ?? 0) * dt;
+  // "gosta de" = so o que e prazeroso/escolhido; medo (saltos) e recuo NAO sao gostos (ficam nos tracos)
+  const eat = (counts["comendo"] ?? 0) * dt, walk = (counts["andando"] ?? 0) * dt, sing = (counts["cantando"] ?? 0) * dt;
+  const dance = (counts["dancando"] ?? 0) * dt, ball = (counts["jogando_bola"] ?? 0) * dt, cards = (counts["jogando_cartas"] ?? 0) * dt, bet = (counts["apostando"] ?? 0) * dt;
   if (eat > 1) out.push(`comer (${eat.toFixed(0)} s)`);
   if (dist > 2) out.push(`passear (${dist.toFixed(0)} cm)`);
   if (sing > 0.5) out.push(`cantar (${sing.toFixed(0)} s)`);
-  if (back > 1) out.push(`recuar (${back.toFixed(0)} s)`);
-  if (jump > 0.3) out.push(`pular de susto (${jump.toFixed(1)} s)`);
-  if (walk < 2 && eat < 1) out.push("ficar parada");
+  if (dance > 0.5) out.push(`dançar (${dance.toFixed(0)} s)`);
+  if (ball > 0.3) out.push(`jogar bola`);
+  if (cards > 0.5) out.push(`jogar cartas (${cards.toFixed(0)} s)`);
+  if (bet > 0.5) out.push(`apostar na roleta (${bet.toFixed(0)} s)`);
+  if (walk < 2 && eat < 1 && out.length === 0) out.push("ficar quieta");
   return out;
 }

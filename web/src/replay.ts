@@ -3,7 +3,7 @@
 export interface FlyInfo { name: string; sex: "female" | "male"; color: string; hud: string; n_neurons: number; control: boolean; }
 export interface Manifest {
   world: any; dt_s: number; seconds: number; ticks: number; n_flies: number; n_spheres: number;
-  fields: string[]; flies: FlyInfo[]; spheres: any[]; cubes: any[]; prisms: any[]; patches: any[]; water: any[];
+  fields: string[]; flies: FlyInfo[]; spheres: any[]; cubes: any[]; prisms: any[]; patches: any[]; water: any[]; playgrounds?: any[];
   state_ids: Record<string, number>; metrics?: any; brain_mode: string; day_index?: number; wall_s?: number;
   robots?: { name: string; level: string; route: number[][]; r: number; night_only: boolean }[]; n_robots?: number;
   world_row_len?: number; robot_fields?: string[]; lab_fields?: string[]; level_ids?: Record<string, number>;

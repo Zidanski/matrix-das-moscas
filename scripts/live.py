@@ -89,6 +89,7 @@ class LiveServer:
                            "missing_inputs": fl.info["missing"], "control": d.w["flies"][b.idx]["name"] == d.control_fly} for b, fl in zip(d.bodies, d.flies)],
                 "spheres": [asdict(s) for s in d.objects.spheres], "cubes": [asdict(c) for c in d.objects.cubes], "prisms": [asdict(p) for p in d.objects.prisms],
                 "patches": [asdict(p) for p in d.objects.patches], "water": [asdict(w) for w in d.objects.water],
+                "playgrounds": [asdict(p) for p in d.objects.playgrounds],
                 "robots": [{"name": r.name, "level": r.level, "route": r.route, "r": r.r, "night_only": r.night_only} for r in (d.robots.robots if d.robots else [])],
                 "brain_samples": [{"fly": i, "n": len(fl.info["soma"]), "n_total": fl.info["n"], "class_names": fl.info["class_names"]} for i, fl in enumerate(d.flies)],
                 "soma": [np.concatenate([_norm(fl.info["soma"]), np.asarray(fl.info["classes"], dtype=np.float32)[:, None]], axis=1).ravel().tolist() if len(fl.info["soma"]) else [] for fl in d.flies]}

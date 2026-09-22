@@ -31,6 +31,7 @@ const traces = new Traces($<HTMLCanvasElement>("traces"), [
 let brainOn = false, matrixOn = false, brainDir = "", brainFly = -1;
 let recorder: MediaRecorder | null = null;
 let live: LiveClient | null = null;
+let followPrev: THREE.Vector3 | null = null;
 let liveFollow = true;
 let liveState = "idle";
 let dossierOn = false;
@@ -185,6 +186,7 @@ function draw() {
     world.setLab(ls.door, ls.hatch, ls.genOff, ls.elevator);
   }
   let anyUnder = false;
+  let anyBetting = false;
   const sel = $<HTMLDivElement>("hudbody");
   let selPos = new THREE.Vector3();
   world.flies.forEach((fm, i) => {
@@ -195,6 +197,7 @@ function draw() {
     const pos = lvl === 1 ? new THREE.Vector3(x, -world!.labDepth, -y) : world!.toThree(x, y, 0);
     fm.group.visible = lvl !== 2;
     if (lvl === 1) anyUnder = true;
+    if (state === "apostando") anyBetting = true;
     fm.update(pos, heading, state, t, Math.abs(replay!.get(k, i, "v")) > 0.05);
     const md = mood(replay!, k, i);
     const th = thoughts(replay!, k, i);
@@ -216,15 +219,19 @@ function draw() {
     }
   });
   world.setUnderground(anyUnder || camMode === "security");
+  world.spinRoulette(anyBetting, t);
   if (camMode === "security") {
     const lab = m.world.lab; const [x0, y0, x1, y1] = lab.bounds;
     // canto sudeste do laboratorio, olhando em diagonal para o centro (camera de seguranca)
     camera.position.lerp(new THREE.Vector3(x1 - 2, -world.labDepth + 5, -y0 - 2), 0.1);
     controls.target.lerp(new THREE.Vector3((x0 + x1) / 2 - 4, -world.labDepth + 0.5, -(y0 + y1) / 2), 0.2);
   } else if (camMode === "follow") {
-    const goal = selPos.clone().add(new THREE.Vector3(-4, 3, 4));
-    camera.position.lerp(goal, 0.08);
-    controls.target.lerp(selPos, 0.2);
+    // segue a mosca mantendo o deslocamento escolhido pelo usuario: orbita e zoom continuam livres
+    if (!followPrev) { followPrev = selPos.clone(); camera.position.copy(selPos).add(new THREE.Vector3(-4, 3, 4)); }
+    const delta = selPos.clone().sub(followPrev);
+    camera.position.add(delta);
+    controls.target.copy(selPos);
+    followPrev = selPos.clone();
   } else if (camMode === "top") {
     camera.position.lerp(new THREE.Vector3(0.01, m.world.arena.radius_cm * 2.2, 0), 0.1);
     controls.target.lerp(new THREE.Vector3(0, 0, 0), 0.2);
@@ -252,8 +259,8 @@ function loop() {
     tick += (dtWall * speed) / replay.manifest.dt_s;
     if (tick >= replay.manifest.ticks) { tick = replay.manifest.ticks - 1; playing = false; $("play").textContent = "▶"; }
     draw();
-  } else if (replay && camMode !== "orbit") {
-    draw();   // cameras que seguem/interpolam precisam redesenhar mesmo em pausa
+  } else if (replay && camMode !== "orbit" && camMode !== "follow") {
+    draw();   // cameras que interpolam precisam redesenhar mesmo em pausa
   }
   controls.update();
   if (world) renderer.render(world.scene, camera);
@@ -333,7 +340,7 @@ $("play").onclick = () => {
   }
   playing = !playing; $("play").textContent = playing ? "❚❚" : "▶"; if (replay && tick >= replay.manifest.ticks - 1) tick = 0; };
 $<HTMLSelectElement>("speed").onchange = (e) => (speed = +(e.target as HTMLSelectElement).value);
-$<HTMLSelectElement>("cam").onchange = (e) => (camMode = (e.target as HTMLSelectElement).value);
+$<HTMLSelectElement>("cam").onchange = (e) => { camMode = (e.target as HTMLSelectElement).value; followPrev = null; };
 $("diarybtn").onclick = () => { const d = $("diary"); d.style.display = d.style.display === "block" ? "none" : "block"; };
 addEventListener("keydown", (e) => { if (e.code === "Space") { e.preventDefault(); $("play").click(); } });
 

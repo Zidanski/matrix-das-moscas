@@ -45,6 +45,9 @@ objects:
     - {name: mancha_geosmina, x: -9.0, y: -15.0, r: 1.5, kind: geosmin, odor_sigma_cm: 5.0}
   water:                       # plano azul falso (GRNs de agua; armadilha por tensao superficial)
     - {name: lago, x: 14.0, y: -6.0, r: 5.0}
+  playgrounds:                 # brincadeiras gamificadas (world/social.py): mesa de cartas e roleta de cassino
+    - {name: mesa_de_cartas, x: -8.0, y: -3.0, r: 1.6, kind: cards}
+    - {name: roleta, x: 7.0, y: 8.0, r: 1.8, kind: roulette}
   decor:                       # so visual (sem fisica): arvores (cone/esfera em haste) e formas
     trees:
       - {x: -12, y: 10, kind: cone, h: 4.0}
@@ -102,6 +105,10 @@ social:
   cooldown_flirt_s: 8            # (era 12)
   cooldown_dance_s: 10           # (era 20)
   cooldown_meet_s: 5             # (era 10)
+  chips_start: 10                # fichas iniciais de cada mosca (roleta)
+  roulette_win_prob: 0.35        # chance de ganhar (paga 2x a aposta)
+  cards_rounds_s: 4.0            # duracao de uma partida de cartas
+  roulette_spin_s: 3.0           # duracao de um giro da roleta
 
 brains:
   female_full: flywire783

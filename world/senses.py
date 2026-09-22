@@ -45,6 +45,7 @@ class Senses:
         odor_scale = 1.0 - (1.0 - float(self.day["night_odor_scale"])) * (1.0 - light)
         loom_scale = 1.0 + (float(self.day["night_loom_scale"]) - 1.0) * (1.0 - light)
         (lx, ly), (rx, ry) = self._antennae(b)
+        b.loom_source = ("", 0.0)          # quem mais assustou nesta janela (motivo do salto)
 
         def add(name, l, r):
             l, r = min(1.0, max(0.0, l)), min(1.0, max(0.0, r))
@@ -122,3 +123,5 @@ class Senses:
             v = min(1.0, rate / float(self.s["loom_gain"])) * scale
             add("lc4", v * sl, v * sr)
             add("lplc2", v * sl, v * sr)
+            if v > b.loom_source[1]:
+                b.loom_source = (key, v)

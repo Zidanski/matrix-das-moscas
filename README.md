@@ -89,7 +89,9 @@ A pedido do dono do projeto, depois dos 133 dias, o mundo ganhou uma **camada
 social gamificada** (`world/social.py`): necessidades de social, diversão e
 romance que, **só quando o cérebro está ocioso**, levam a mosca até outra
 mosca, uma bola ou um par; interações por proximidade (comer juntas, dançar,
-jogar bola, flertar com aceite ou rejeição) e relações por par. Nada disso vem
+jogar bola, flertar com aceite ou rejeição, jogar cartas numa mesa e apostar
+fichas numa roleta de cassino) e relações por par. Cada susto registra o
+motivo (robô, bola, mosca, canção ou disparo espontâneo). Nada disso vem
 dos neurônios: o replay marca cada tick como reflexo (0) ou gamificado (1), o
 HUD mostra qual camada está no comando, e a tabela real/premissa acima vale
 só para a parte neural. S2, S3 e S4 ficaram mais fáceis (intervenção

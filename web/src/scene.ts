@@ -20,6 +20,8 @@ export class World3D {
   flies: FlyMesh[] = [];
   robots: RobotMesh[] = [];
   labGroup = new THREE.Group();
+  roulette?: THREE.Group;
+  rouletteBall?: THREE.Mesh;
   labDepth = 0;
   doorMesh?: THREE.Mesh; hatchMesh?: THREE.Mesh; elevatorMesh?: THREE.Mesh; labLights: THREE.Mesh[] = [];
   ground!: THREE.Mesh;
@@ -117,6 +119,43 @@ export class World3D {
       mesh.position.set(wtr.x, this.height(wtr.x, wtr.y) + 0.05, -wtr.y);
       mesh.userData.water = true;
       this.scene.add(mesh);
+    }
+    // brincadeiras: mesa de cartas e roleta de cassino
+    for (const pg of m.playgrounds ?? []) {
+      const base = this.height(pg.x, pg.y);
+      if (pg.kind === "cards") {
+        const table = new THREE.Mesh(new THREE.CylinderGeometry(pg.r, pg.r * 0.9, 0.35, 8), new THREE.MeshLambertMaterial({ color: 0x2d6a4f, flatShading: true }));
+        table.position.set(pg.x, base + 0.5, -pg.y); table.castShadow = true;
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.4, 6), new THREE.MeshLambertMaterial({ color: 0x8d6e63 }));
+        leg.position.set(pg.x, base + 0.2, -pg.y);
+        this.scene.add(table, leg);
+        for (let i = 0; i < 4; i++) {
+          const card = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.55), new THREE.MeshBasicMaterial({ color: 0xfff8e7, side: THREE.DoubleSide }));
+          card.rotation.x = -Math.PI / 2; card.rotation.z = i * 0.9;
+          card.position.set(pg.x + Math.cos(i * 1.57) * pg.r * 0.45, base + 0.69, -pg.y + Math.sin(i * 1.57) * pg.r * 0.45);
+          this.scene.add(card);
+        }
+      } else {
+        const g = new THREE.Group();
+        const rim = new THREE.Mesh(new THREE.CylinderGeometry(pg.r, pg.r, 0.5, 24), new THREE.MeshLambertMaterial({ color: 0x5c2a2a, flatShading: true }));
+        rim.position.y = 0.25; g.add(rim);
+        const wheel = new THREE.Group();
+        for (let i = 0; i < 12; i++) {
+          const seg = new THREE.Mesh(new THREE.CylinderGeometry(pg.r * 0.85, pg.r * 0.85, 0.12, 24, 1, false, (i * Math.PI * 2) / 12, (Math.PI * 2) / 12),
+            new THREE.MeshLambertMaterial({ color: i % 2 ? 0xd62828 : 0x1b1b1b }));
+          seg.position.y = 0.56; wheel.add(seg);
+        }
+        const hub = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.5, 8), new THREE.MeshLambertMaterial({ color: 0xffd166 }));
+        hub.position.y = 0.85; wheel.add(hub);
+        g.add(wheel);
+        this.rouletteBall = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 5), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+        this.rouletteBall.position.set(pg.r * 0.7, 0.72, 0); g.add(this.rouletteBall);
+        const sign = makeLabel("ROLETA", "#ffd166"); sign.position.y = 2.2; g.add(sign);
+        g.position.set(pg.x, base, -pg.y);
+        g.userData.wheel = wheel;
+        this.roulette = g;
+        this.scene.add(g);
+      }
     }
     // decoracao (so visual): arvores e formas
     const decor = m.world.objects?.decor ?? {};
@@ -220,6 +259,11 @@ export class World3D {
     (this.sky.material as THREE.MeshBasicMaterial).color.setScalar(0.25 + 0.75 * light);
   }
   setSphere(i: number, x: number, y: number, r: number) { this.spheres[i]?.position.copy(this.toThree(x, y, r)); }
+  spinRoulette(spinning: boolean, t: number) {
+    if (!this.roulette) return;
+    const wheel = this.roulette.userData.wheel as THREE.Group;
+    if (spinning) { wheel.rotation.y += 0.25; this.rouletteBall!.position.set(Math.cos(t * 12) * 1.2, 0.72 + 0.1 * Math.abs(Math.sin(t * 20)), Math.sin(t * 12) * 1.2); }
+  }
   /** modo Deus: objetos criados ao vivo */
   addPatch(x: number, y: number, r: number, kind: string) {
     const color = kind === "sugar" ? SURF.sugar : kind === "bitter" ? SURF.bitter : 0x8fbf6a;
@@ -264,7 +308,7 @@ export class RobotMesh {
   }
 }
 
-const STATE_WING: Record<string, number> = { parada: 0, andando: 0.15, re: 0.15, comendo: 0.05, saltando: 1.2, cantando: 0.9, presa: 0.3, convulsao: 1.5, capturada: 0, grooming: 0.1, lutando: 0.7, cortejando: 0.4, dancando: 0.6, flertando: 0.35, passeando: 0.15 };
+const STATE_WING: Record<string, number> = { parada: 0, andando: 0.15, re: 0.15, comendo: 0.05, saltando: 1.2, cantando: 0.9, presa: 0.3, convulsao: 1.5, capturada: 0, grooming: 0.1, lutando: 0.7, cortejando: 0.4, dancando: 0.6, flertando: 0.35, passeando: 0.15, jogando_bola: 0.5, jogando_cartas: 0.05, apostando: 0.8 };
 
 export class FlyMesh {
   group = new THREE.Group();
@@ -272,6 +316,7 @@ export class FlyMesh {
   label: THREE.Sprite;
   bubble: THREE.Sprite;
   bubbleText = "";
+  cards: THREE.Group;
   body: THREE.Mesh;
   L: number;
   constructor(public info: FlyInfo, scene: THREE.Scene) {
@@ -308,6 +353,15 @@ export class FlyMesh {
     this.bubble.position.y = L * 4.2;
     this.bubble.visible = false;
     this.group.add(this.bubble);
+    // cartas na mao (so aparecem jogando cartas)
+    this.cards = new THREE.Group();
+    for (let i = 0; i < 3; i++) {
+      const c = new THREE.Mesh(new THREE.PlaneGeometry(L * 0.5, L * 0.7), new THREE.MeshBasicMaterial({ color: i === 1 ? 0xffe8e8 : 0xfff8e7, side: THREE.DoubleSide }));
+      c.position.set(L * 0.7, L * 1.2, (i - 1) * L * 0.35); c.rotation.y = (i - 1) * 0.35;
+      this.cards.add(c);
+    }
+    this.cards.visible = false;
+    this.group.add(this.cards);
     thorax.castShadow = true;
     scene.add(this.group);
   }
@@ -317,11 +371,23 @@ export class FlyMesh {
     this.group.position.copy(pos).add(new THREE.Vector3(0, L * 0.45, 0));
     this.group.rotation.y = heading;
     this.group.rotation.z = 0;
+    this.group.rotation.x = 0;
     const a = STATE_WING[state] ?? 0.1;
     const flap = a * Math.sin(t * (state === "cantando" ? 220 : 60));
     for (const w of this.wings) w.rotation.z = w.userData.side * (0.15 + flap);
+    this.cards.visible = state === "jogando_cartas";
     if (state === "saltando") {
       this.group.position.y += 0.9 * Math.abs(Math.sin(t * 26));       // arco do salto
+    } else if (state === "jogando_bola") {
+      const ph = (t * 10) % (Math.PI * 2);
+      this.group.position.x += Math.cos(heading) * 0.15 * Math.sin(ph);   // investida do chute
+      this.group.position.z -= Math.sin(heading) * 0.15 * Math.sin(ph);
+      this.group.rotation.x = -0.35 * Math.max(0, Math.sin(ph));
+    } else if (state === "jogando_cartas") {
+      this.group.position.y += L * 0.08 * Math.sin(t * 4);              // pensa, olha as cartas
+      this.cards.rotation.z = 0.15 * Math.sin(t * 3);
+    } else if (state === "apostando") {
+      this.group.position.y += L * 0.5 * Math.abs(Math.sin(t * 14));    // torce, pulando
     } else if (state === "dancando") {
       this.group.rotation.y = heading + Math.sin(t * 6) * 1.2;          // danca: gira e balanca
       this.group.position.y += L * 0.3 * Math.abs(Math.sin(t * 12));

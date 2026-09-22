@@ -12,7 +12,11 @@ const EVENT_TEXT: Record<string, (e: ReplayEvent, me: string, other: string) => 
   jogaram_bola: (e, me, o) => (e.flies[0] === me ? `chutou a bola para ${o}` : `recebeu a bola de ${o}`),
   flerte_aceito: (e, me, o) => (e.flies[0] === me ? `flertou com ${o} e foi correspondido` : `aceitou o flerte de ${o}`),
   flerte_rejeitado: (e, me, o) => (e.flies[0] === me ? `flertou com ${o} e levou um fora` : `rejeitou ${o}`),
-  salto: () => "saltou de susto",
+  salto: (e) => `saltou de susto: ${e.motivo ?? "motivo não registrado"}`,
+  jogaram_cartas: (e, me) => `jogou cartas com ${e.flies.filter((f: string) => f !== me).join(", ")}${e.vencedor === me ? " e ganhou" : ` (ganhou ${e.vencedor})`}`,
+  apostou: (e) => `apostou ${e.fichas} ficha(s) na roleta`,
+  ganhou_na_roleta: (e) => `ganhou ${e.fichas} fichas na roleta (saldo ${e.saldo})`,
+  perdeu_na_roleta: (e) => `perdeu ${e.fichas} ficha(s) na roleta (saldo ${e.saldo})`,
   presa_na_agua: () => "ficou presa no lago",
   resgate_da_agua: (e, me, o) => (e.flies[0] === me ? `foi libertada do lago por ${o}` : `libertou ${o} do lago`),
   afundou: () => "afundou pelo fundo falso do lago e caiu no laboratório",
@@ -32,6 +36,7 @@ export function relations(rp: Replay, me: string, tUpTo: number) {
   const get = (o: string) => (rel[o] ??= { amizade: 0, romance: 0 });
   for (const e of rp.events) {
     if (e.t > tUpTo || !e.flies.includes(me) || e.flies.length < 2) continue;
+    if (e.kind === "jogaram_cartas") { for (const o2 of e.flies) if (o2 !== me) get(o2).amizade += 0.1; continue; }
     const o = e.flies.find((f) => f !== me)!;
     switch (e.kind) {
       case "encontro": get(o).amizade += 0.05; break;
@@ -53,6 +58,8 @@ export function traits(rp: Replay, k: number, i: number): string[] {
   const out: string[] = [];
   const my = rp.events.filter((e) => e.t <= t && e.flies.includes(name));
   const cnt = (kind: string) => my.filter((e) => e.kind === kind).length;
+  const male = m.flies[i].sex === "male";
+  const g = (fem: string, masc: string) => (male ? masc : fem);   // concordancia com o sexo da mosca
   // gostos derivados do que a mosca fez
   let water = 0, sugar = 0, ball = 0, lab = 0;
   const step = Math.max(1, Math.floor(k / 300));
@@ -67,10 +74,25 @@ export function traits(rp: Replay, k: number, i: number): string[] {
   if (sugar / n > 0.1) out.push(`${name} gosta de açúcar`);
   if (ball >= 2) out.push(`${name} gosta de jogar bola`);
   if (cnt("dancaram") >= 2) out.push(`${name} adora dançar`);
-  if (cnt("salto") > 20) out.push(`${name} é assustadiça`);
-  else if (cnt("salto") === 0 && k > 500) out.push(`${name} é destemida`);
-  if (lab / n > 0.2) out.push(`${name} é curiosa: vive no laboratório`);
-  if (cnt("captura") > 0) out.push(`${name} já foi capturada ${cnt("captura")}×`);
+  const jumps = cnt("salto");
+  const mins = Math.max(1 / 60, (k * m.dt_s) / 60);
+  if (jumps / mins > 60) out.push(`${name} é ${g("assustadiça", "assustadiço")} (${jumps} sustos)`);
+  else if (jumps / mins > 15) out.push(`${name} é ${g("nervosa", "nervoso")} (${jumps} sustos)`);
+  else if (jumps === 0 && k > 500) out.push(`${name} é ${g("destemida", "destemido")}`);
+  const motivos: Record<string, number> = {};
+  for (const e of my) if (e.kind === "salto" && e.motivo) motivos[e.motivo] = (motivos[e.motivo] ?? 0) + 1;
+  const topM = Object.entries(motivos).sort((a, b) => b[1] - a[1])[0];
+  if (topM && topM[1] >= 3) out.push(`o que mais assusta ${name}: ${topM[0]}`);
+  const bets = cnt("apostou"), wins = cnt("ganhou_na_roleta"), losses = cnt("perdeu_na_roleta");
+  if (bets >= 3) out.push(`${name} é viciad${g("a", "o")} em roleta (${bets} apostas)`);
+  if (wins > losses && wins >= 2) out.push(`${name} é sortud${g("a", "o")} (${wins} vitórias, ${losses} derrotas)`);
+  if (losses > wins && losses >= 3) out.push(`${name} é azarad${g("a", "o")} na roleta`);
+  const cardWins = my.filter((e) => e.kind === "jogaram_cartas" && e.vencedor === name).length;
+  if (cardWins >= 2) out.push(`${name} é ${g("boa", "bom")} de cartas (${cardWins} vitórias)`);
+  const back = my.filter((e) => e.kind === "estado" && e.para === "re").length;
+  if (back >= 5) out.push(`${name} recua muito (ré por toque na antena)`);
+  if (lab / n > 0.2) out.push(`${name} é ${g("curiosa", "curioso")}: vive no laboratório`);
+  if (cnt("captura") > 0) out.push(`${name} já foi ${g("capturada", "capturado")} ${cnt("captura")}×`);
   if (m.flies[i].sex === "male" && cnt("flerte_aceito") + cnt("flerte_rejeitado") >= 2) out.push(`${name} é galanteador`);
   if (cnt("flerte_rejeitado") > cnt("flerte_aceito") && cnt("flerte_rejeitado") >= 2) out.push(`${name} vive levando fora`);
   const gam = rp.fi["gamified"] !== undefined ? rp.get(k, i, "gamified") : 0;
@@ -113,9 +135,23 @@ export function recentLog(rp: Replay, k: number, i: number, max = 14): string[] 
   return out.length ? out : ["(nada aconteceu com ela ainda)"];
 }
 
+export function chips(rp: Replay, k: number, i: number): number {
+  const m = rp.manifest;
+  const name = m.flies[i].name;
+  const t = k * m.dt_s;
+  let c = 10;
+  for (const e of rp.events) {
+    if (e.t > t || !e.flies.includes(name)) continue;
+    if (e.kind === "apostou") c -= e.fichas ?? 0;
+    else if (e.kind === "ganhou_na_roleta") c += e.fichas ?? 0;
+    else if (e.kind === "jogaram_cartas") c += e.vencedor === name ? e.flies.length - 1 : -1;
+  }
+  return Math.max(0, c);
+}
+
 export function needsBars(rp: Replay, k: number, i: number): string {
   if (rp.fi["need_social"] === undefined) return "";
   const bar = (v: number) => "▮".repeat(Math.round(v * 10)) + "▯".repeat(10 - Math.round(v * 10));
   const h = Math.min(1, (rp.get(k, i, "hunger") - 1));
-  return `fome ${bar(h)}  social ${bar(rp.get(k, i, "need_social"))}  diversão ${bar(rp.get(k, i, "need_fun"))}  romance ${bar(rp.get(k, i, "need_romance"))}`;
+  return `fome ${bar(h)}  social ${bar(rp.get(k, i, "need_social"))}  diversão ${bar(rp.get(k, i, "need_fun"))}  romance ${bar(rp.get(k, i, "need_romance"))}  fichas 🎰 ${chips(rp, k, i)}`;
 }

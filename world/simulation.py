@@ -251,6 +251,7 @@ class Day:
                     "spheres": [asdict(s) for s in self.objects.spheres], "cubes": [asdict(c) for c in self.objects.cubes],
                     "prisms": [asdict(p) for p in self.objects.prisms], "patches": [asdict(p) for p in self.objects.patches],
                     "water": [asdict(w) for w in self.objects.water],
+                    "playgrounds": [asdict(p) for p in self.objects.playgrounds],
                     "robots": [{"name": r.name, "level": r.level, "route": r.route, "r": r.r, "night_only": r.night_only} for r in (self.robots.robots if self.robots else [])],
                     "n_robots": len(self.robots.robots) if self.robots else 0}
         writer = ReplayWriter(self.out_dir, manifest, self.rate_pops, len(self.bodies), len(self.objects.spheres), input_pops=INPUTS)
@@ -328,7 +329,16 @@ class Day:
                 if b.level == "lab":
                     b.time_in_lab += self.dt
                 if m.jump and b.jump_t > 0.1:
-                    writer.add_event(t, "salto", [b.name], loom=round(loom_side[b.name], 2))
+                    src, val = b.loom_source
+                    jo = max(st.get("jo_a", (0, 0)) + st.get("jo_b", (0, 0)))
+                    if val > 0.15:
+                        who = src
+                        motivo = f"vulto de {who}" + (" (robô)" if who.startswith("R") and who[1:].isdigit() else (" (bola rolando)" if who.startswith("bola") else " (mosca se aproximando)"))
+                    elif jo > 0.3:
+                        motivo = "barulho da canção perto da antena"
+                    else:
+                        motivo = "sobressalto espontâneo (disparo isolado da fibra gigante)"
+                    writer.add_event(t, "salto", [b.name], loom=round(loom_side[b.name], 2), motivo=motivo)
                 row = [b.x, b.y, b.z, b.heading, b.v, b.omega, STATE_IDS.get(b.state, 0), b.hunger_gain, float(out["ignited"]),
                        float(out["spikes"]), float(m.feed), float(m.jump), float(m.song), float(m.court), float(b.stuck), float(LEVEL_IDS[b.level]),
                        gamified] + self.social.rows(b.name)
