@@ -19,10 +19,12 @@ from pathlib import Path
 import numpy as np
 
 STATE_IDS = {"parada": 0, "andando": 1, "re": 2, "comendo": 3, "saltando": 4, "cantando": 5,
-             "presa": 6, "convulsao": 7, "capturada": 8, "grooming": 9, "lutando": 10, "cortejando": 11}
+             "presa": 6, "convulsao": 7, "capturada": 8, "grooming": 9, "lutando": 10, "cortejando": 11,
+             "dancando": 12, "flertando": 13, "passeando": 14}
 STATE_NAMES = {v: k for k, v in STATE_IDS.items()}
 
-BASE_FIELDS = ["x", "y", "z", "heading", "v", "omega", "state", "hunger", "ignited", "spikes", "feed", "jump", "song", "court", "stuck", "level"]
+BASE_FIELDS = ["x", "y", "z", "heading", "v", "omega", "state", "hunger", "ignited", "spikes", "feed", "jump", "song", "court", "stuck", "level",
+               "gamified", "need_social", "need_fun", "need_romance"]
 LEVEL_IDS = {"surface": 0, "lab": 1, "fora": 2}
 ROBOT_FIELDS = ["x", "y", "level", "state"]          # por robo, por tick (world.bin)
 LAB_FIELDS = ["door_s2", "hatch", "generator_off", "elevator_open"]   # estado dos mecanismos (world.bin)

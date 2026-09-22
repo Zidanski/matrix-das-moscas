@@ -36,6 +36,8 @@ class FlyBody:
     on_surface: str = "none"                       # sugar|bitter|water|none (o que pisa/toca)
     idx: int = 0
     level: str = "surface"                         # surface | lab | fora (fugiu)
+    state_override: str = ""                       # camada social: dancando | flertando
+    wish: str = ""                                 # desejo gamificado em curso
     stuck_since: float = -1.0
     time_in_lab: float = 0.0
     captures: int = 0
@@ -88,6 +90,8 @@ class Physics:
             b.state = "andando" if abs(b.v) > 0.05 or abs(b.omega) > 0.1 else "parada"
         if m.song and b.state in ("parada", "andando"):
             b.state = "cantando"
+        if b.state_override and b.state in ("parada", "andando"):
+            b.state = b.state_override
         # integracao
         b.heading = wrap_angle(b.heading + b.omega * dt)
         nx = b.x + b.v * math.cos(b.heading) * dt

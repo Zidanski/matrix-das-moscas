@@ -81,6 +81,14 @@ que o screen mostrar que existem; os ausentes viram lacuna documentada.
 Ver docs/F0_reconhecimento.md e o README. Estética Teletubbies falsa; robôs
 são máquinas de estado; segredos exigem coincidência de reflexos de 2+ moscas.
 
+## 8b. Camada gamificada (F6, pedido do dono em 2026-09-22)
+O dono liberou gamificar o que não vem do cérebro. world/social.py assume o
+movimento SÓ quando o cérebro está ocioso (necessidades social/diversão/romance),
+gera interações (comer juntas, dançar, bola, flerte) e relações. O replay marca
+`gamified` por tick; o README declara a camada. Modo ao vivo: `uv run matrix live`
+(WebSocket 8765) com modo Deus e dossiês no visualizador. S2/S3/S4 relaxados
+(intervenção registrada em interface/config.yaml).
+
 ## 9. Honestidade científica
 README com tabela "real / premissa"; métricas por dia; comparação com o modo
 controle; ATTRIBUTION.md com todas as fontes e licenças.

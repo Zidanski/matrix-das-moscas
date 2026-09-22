@@ -220,6 +220,19 @@ export class World3D {
     (this.sky.material as THREE.MeshBasicMaterial).color.setScalar(0.25 + 0.75 * light);
   }
   setSphere(i: number, x: number, y: number, r: number) { this.spheres[i]?.position.copy(this.toThree(x, y, r)); }
+  /** modo Deus: objetos criados ao vivo */
+  addPatch(x: number, y: number, r: number, kind: string) {
+    const color = kind === "sugar" ? SURF.sugar : kind === "bitter" ? SURF.bitter : 0x8fbf6a;
+    const mesh = new THREE.Mesh(new THREE.CircleGeometry(r, 16), new THREE.MeshLambertMaterial({ color }));
+    mesh.rotation.x = -Math.PI / 2; mesh.position.set(x, this.height(x, y) + 0.03, -y);
+    this.scene.add(mesh);
+  }
+  addSphere(x: number, y: number, r: number, surface: string) {
+    const mesh = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), new THREE.MeshLambertMaterial({ color: (SURF as any)[surface] ?? SURF.none, flatShading: true }));
+    mesh.position.copy(this.toThree(x, y, r)); mesh.castShadow = true;
+    this.scene.add(mesh); this.spheres.push(mesh);
+  }
+  addRobot(info: any) { this.robots.push(new RobotMesh(info, this.labGroup, this.labDepth)); }
 }
 
 export class RobotMesh {
@@ -251,7 +264,7 @@ export class RobotMesh {
   }
 }
 
-const STATE_WING: Record<string, number> = { parada: 0, andando: 0.15, re: 0.15, comendo: 0.05, saltando: 1.2, cantando: 0.9, presa: 0.3, convulsao: 1.5, capturada: 0, grooming: 0.1, lutando: 0.7, cortejando: 0.4 };
+const STATE_WING: Record<string, number> = { parada: 0, andando: 0.15, re: 0.15, comendo: 0.05, saltando: 1.2, cantando: 0.9, presa: 0.3, convulsao: 1.5, capturada: 0, grooming: 0.1, lutando: 0.7, cortejando: 0.4, dancando: 0.6, flertando: 0.35, passeando: 0.15 };
 
 export class FlyMesh {
   group = new THREE.Group();
@@ -309,6 +322,11 @@ export class FlyMesh {
     for (const w of this.wings) w.rotation.z = w.userData.side * (0.15 + flap);
     if (state === "saltando") {
       this.group.position.y += 0.9 * Math.abs(Math.sin(t * 26));       // arco do salto
+    } else if (state === "dancando") {
+      this.group.rotation.y = heading + Math.sin(t * 6) * 1.2;          // danca: gira e balanca
+      this.group.position.y += L * 0.3 * Math.abs(Math.sin(t * 12));
+    } else if (state === "flertando") {
+      this.group.rotation.z = 0.25 * Math.sin(t * 8);                   // flerte: balanca o corpo
     } else if (moving || state === "andando" || state === "re") {
       const hop = Math.abs(Math.sin(t * 16));                            // pulinhos ao andar
       this.group.position.y += L * 0.35 * hop;

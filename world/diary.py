@@ -51,6 +51,12 @@ def write_diary(day_index: int, seconds: float, flies: list[dict], metrics: dict
     else:
         mf = [e for e in enc if e.get("sexos") in ("fm", "mf")]
         L.append(f"{len(enc)} encontros, {len(mf)} entre macho e fêmea: " + "; ".join(f"{e['flies'][0]} e {e['flies'][1]} aos {_fmt(e['t'], 0)} s" for e in enc[:6]) + ("…" if len(enc) > 6 else "") + ".")
+    soc = Counter(e["kind"] for e in events if e["kind"] in ("comeram_juntas", "dancaram", "jogaram_bola", "flerte_aceito", "flerte_rejeitado"))
+    if soc:
+        L.append("Vida social (camada gamificada): " + ", ".join(f"{ {'comeram_juntas': 'refeições a dois', 'dancaram': 'danças', 'jogaram_bola': 'partidas de bola', 'flerte_aceito': 'flertes aceitos', 'flerte_rejeitado': 'flertes rejeitados'}[k]} {v}" for k, v in soc.items()) + ".")
+        for e in [e for e in events if e["kind"] in ("flerte_aceito", "flerte_rejeitado", "dancaram")][:6]:
+            verb = {"flerte_aceito": "flertou com", "flerte_rejeitado": "levou um fora de", "dancaram": "dançou com"}[e["kind"]]
+            L.append(f"- {e['flies'][0]} {verb} {e['flies'][1]} aos {_fmt(e['t'], 0)} s.")
     songs = [e for e in events if e["kind"] == "estado" and e.get("para") == "cantando"]
     if songs:
         c = Counter(e["flies"][0] for e in songs)

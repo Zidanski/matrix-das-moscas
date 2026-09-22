@@ -39,6 +39,7 @@ uv run matrix simulate --days 1 --seconds 60 --brain reduced   # um dia -> runs/
 cd web; npm install; npm run dev          # visualizador em http://localhost:5173
 powershell -File scripts/run_100_days.ps1 # 100 dias (50 normais + 50 com Fil em modo controle), ~10 h
 uv run matrix report --runs runs/cem      # relatorio: docs/F5_relatorio/{relatorio.md,dias.csv,dias.png}
+uv run matrix live --seconds 300          # modo ao vivo (ws://localhost:8765) + modo Deus no visualizador
 ```
 
 ## Métricas por dia e comparação com o controle
@@ -81,6 +82,23 @@ dos de açúcar; aDN1, oDN1, BPN e neurônios de parada só têm rótulos comuni
 e entram apenas como candidatos até o SCREEN da F2. No MaleCNS os neurônios
 sensoriais têm lado só por `rootSide`, e as populações são assimétricas nos dados
 (ex.: ORN_DA1 105 D / 51 E / 48 sem lado).
+
+## Camada gamificada, modo ao vivo e modo Deus (F6)
+
+A pedido do dono do projeto, depois dos 133 dias, o mundo ganhou uma **camada
+social gamificada** (`world/social.py`): necessidades de social, diversão e
+romance que, **só quando o cérebro está ocioso**, levam a mosca até outra
+mosca, uma bola ou um par; interações por proximidade (comer juntas, dançar,
+jogar bola, flertar com aceite ou rejeição) e relações por par. Nada disso vem
+dos neurônios: o replay marca cada tick como reflexo (0) ou gamificado (1), o
+HUD mostra qual camada está no comando, e a tabela real/premissa acima vale
+só para a parte neural. S2, S3 e S4 ficaram mais fáceis (intervenção
+registrada). Também: `uv run matrix live` transmite a simulação por WebSocket
+para o visualizador (opção 🔴 AO VIVO), o botão ⚡ abre o **modo Deus** (mudo
+de canção/feromônio/contato, reiniciar/salvar/restaurar cérebro, convulsão,
+comida, bola, robô, teleporte, pausa) e clicar numa mosca abre o **dossiê**
+(necessidades, traços, relações, últimos acontecimentos). Detalhes em
+`docs/F6_ao_vivo.md`.
 
 ## Estrutura
 

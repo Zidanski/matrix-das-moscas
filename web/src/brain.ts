@@ -20,12 +20,17 @@ export class BrainCloud {
     this.camera.position.set(0, 0.6, 2.6);
     this.camera.lookAt(0, 0, 0);
   }
+  somaArrays: Record<number, Float32Array> = {};   // ao vivo: somas vindas do hello
   async load(rp: Replay, dir: string, fly: number) {
     if (this.points) { this.scene.remove(this.points); this.points.geometry.dispose(); }
     this.fly = fly;
-    const r = await fetch(`/runs/${dir}/soma_${fly}.bin`);
-    if (!r.ok) { this.n = 0; return; }
-    const data = new Float32Array(await r.arrayBuffer());
+    let data: Float32Array;
+    if (this.somaArrays[fly]) data = this.somaArrays[fly];
+    else {
+      const r = await fetch(`/runs/${dir}/soma_${fly}.bin`);
+      if (!r.ok) { this.n = 0; return; }
+      data = new Float32Array(await r.arrayBuffer());
+    }
     this.n = data.length / 4;
     const pos = new Float32Array(this.n * 3);
     this.base = new Float32Array(this.n * 3);

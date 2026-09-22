@@ -62,6 +62,11 @@ def cmd_report(args: argparse.Namespace) -> int:
     return report_days.main(args)
 
 
+def cmd_live(args: argparse.Namespace) -> int:
+    from scripts import live
+    return live.main(args)
+
+
 def cmd_bench(args: argparse.Namespace) -> int:
     from scripts import benchmark
     return benchmark.main(args)
@@ -127,6 +132,14 @@ def main(argv: list[str] | None = None) -> int:
     rp.add_argument("--runs", default="runs/cem")
     rp.add_argument("--out", default="docs/F5_relatorio")
     rp.set_defaults(func=cmd_report)
+
+    lv = sub.add_parser("live", help="modo ao vivo: transmite a simulacao por WebSocket e aceita o modo Deus")
+    lv.add_argument("--seconds", type=float, default=300.0)
+    lv.add_argument("--brain", choices=["reduced", "full"], default="reduced")
+    lv.add_argument("--port", type=int, default=8765)
+    lv.add_argument("--out", default="runs/live")
+    lv.add_argument("--control", default=None)
+    lv.set_defaults(func=cmd_live)
 
     args = ap.parse_args(argv)
     return args.func(args)

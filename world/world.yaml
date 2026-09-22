@@ -84,6 +84,20 @@ flies:                         # nomes curtos, cor, sexo, semente
   - {name: Fil,  sex: male,   color: "#00b4d8", seed: 23}
 spawn_radius_cm: 6.0           # posicoes iniciais ao acaso dentro deste raio (perto umas das outras)
 
+# -----------------------------------------------------------------------------
+# CAMADA SOCIAL GAMIFICADA (estilo The Sims) - NAO vem do cerebro; ver world/social.py
+# -----------------------------------------------------------------------------
+social:
+  enabled: true
+  social_rise_per_s: 0.012
+  fun_rise_per_s: 0.010
+  romance_rise_male_per_s: 0.012
+  romance_rise_female_per_s: 0.006
+  wish_threshold: 0.6            # necessidade acima disso vira desejo
+  idle_ticks_before_wish: 20     # cerebro ocioso por 0,3 s antes de a camada assumir
+  walk_cm_s: 1.0
+  turn_gain: 2.0
+
 brains:
   female_full: flywire783
   female_reduced: flywire783_k3
@@ -114,9 +128,9 @@ lab:
   sugar_patch: {x: -12.0, y: -8.0, r: 1.0}   # o laboratorio alimenta os sujeitos (mancha de acucar)
   secrets:
     s1_placa_dupla: {patches: [mancha_acucar_1, mancha_acucar_2], hatch_open_s: 20.0, near_cm: 3.0}
-    s2_corredor:    {door: {x: 0.0, y: 0.0, w: 1.0, h: 8.0}, sing_cm: 2.5, female_cm: 5.0, open_s: 10.0}
-    s3_alavanca:    {lever: [16.0, -2.0], hit_cm: 0.8, chase_cm: 8.0, generator_off_s: 20.0}
-    s4_elevador:    {zone: {x: 17.0, y: -11.0, w: 5.0, h: 5.0}, min_flies: 3, open_after_s3_s: 20.0}
+    s2_corredor:    {door: {x: 0.0, y: 0.0, w: 1.0, h: 8.0}, sing_cm: 4.0, female_cm: 12.0, open_s: 20.0}   # intervencao: era 2,5 / 5 / 10
+    s3_alavanca:    {lever: [16.0, -2.0], hit_cm: 1.5, chase_cm: 8.0, generator_off_s: 25.0}              # intervencao: era 0,8 / 20
+    s4_elevador:    {zone: {x: 14.0, y: 4.0, w: 8.0, h: 8.0}, min_flies: 2, open_after_s3_s: 40.0}        # intervencao: era 5x5 em (17,-11), 3 moscas, 20 s
   robots:
     speed_cm_s: 1.5
     detect_cm: 7.0             # perseguem moscas ate esta distancia (mesmo nivel)

@@ -4,6 +4,8 @@ import { listRuns, loadReplay, Replay } from "./replay";
 import { World3D } from "./scene";
 import { mood, thoughts, likes } from "./mood";
 import { BrainCloud, Traces } from "./brain";
+import { LiveClient, LiveReplay } from "./live";
+import { traits, relationLines, recentLog, needsBars } from "./dossier";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const app = $("app");
@@ -28,6 +30,10 @@ const traces = new Traces($<HTMLCanvasElement>("traces"), [
 ]);
 let brainOn = false, matrixOn = false, brainDir = "", brainFly = -1;
 let recorder: MediaRecorder | null = null;
+let live: LiveClient | null = null;
+let liveFollow = true;
+let dossierOn = false;
+const LIVE = "__AO_VIVO__";
 const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 2000);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -48,13 +54,50 @@ resize();
 async function boot() {
   const runs = await listRuns();
   const sel = $<HTMLSelectElement>("run");
-  sel.innerHTML = runs.map((r) => `<option value="${r}">${r}</option>`).join("") || "<option>(nenhum replay em runs/)</option>";
-  sel.onchange = () => open(sel.value);
+  sel.innerHTML = `<option value="${LIVE}">🔴 AO VIVO (uv run matrix live)</option>` + runs.map((r) => `<option value="${r}">${r}</option>`).join("");
+  sel.onchange = () => (sel.value === LIVE ? openLive() : open(sel.value));
   if (runs.length) await open(runs[runs.length - 1]);
   else $("load").textContent = "nenhum replay: rode `uv run matrix simulate` e recarregue";
 }
 
+function openLive() {
+  if (live) live.close();
+  $("load").style.display = "flex"; $("load").textContent = "aguardando o servidor ao vivo (uv run matrix live)…";
+  brainDir = ""; brainFly = -1; replay = null;
+  live = new LiveClient("ws://localhost:8765", {
+    onStatus: (st) => ($("livestatus").textContent = "🔴 " + st),
+    onHello: (m, soma) => {
+      replay = new LiveReplay(m);
+      soma.forEach((arr, i) => { if (arr.length) brain.somaArrays[i] = Float32Array.from(arr); });
+      if (world) world.scene.clear();
+      world = new World3D(m);
+      const R = m.world.arena.radius_cm;
+      camera.position.set(R * 1.2, R * 1.0, R * 1.5); controls.target.set(0, 0, 0);
+      tick = 0; buildFlyPanel(); buildEventMarkers();
+      $("load").style.display = "none";
+      $("diary").innerHTML = "<i>ao vivo: o diário aparece ao fim do dia</i>";
+    },
+    onTick: (msg) => {
+      if (!(replay instanceof LiveReplay)) return;
+      replay.push(msg);
+      $<HTMLInputElement>("scrub").max = String(replay.manifest.ticks - 1);
+      if (liveFollow) { tick = replay.manifest.ticks - 1; draw(); }
+      if (msg.events?.length) buildEventMarkers();
+    },
+    onChanges: (changes) => {
+      for (const c of changes) {
+        if (c.type === "patch") world?.addPatch(c.x, c.y, c.r, c.kind);
+        else if (c.type === "sphere") { world?.addSphere(c.x, c.y, c.r, c.surface); if (replay) replay.manifest.n_spheres = Math.max(replay.manifest.n_spheres, 0); }
+        else if (c.type === "robot") world?.addRobot(c);
+      }
+    },
+    onEnd: (msg) => { $("livestatus").textContent = "🔴 dia terminou: " + msg.dir; if (msg.diary) $("diary").innerHTML = "<pre>" + String(msg.diary).replace(/[&<>]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch] as string)) + "</pre>"; },
+  });
+  live.connect();
+}
+
 async function open(dir: string) {
+  if (live) { live.close(); live = null; $("livestatus").textContent = ""; }
   $("load").style.display = "flex";
   brainDir = dir; brainFly = -1;
   replay = await loadReplay(dir);
@@ -82,7 +125,7 @@ function buildFlyPanel() {
     const b = document.createElement("button");
     const md = replay ? mood(replay, Math.max(0, Math.min(replay.manifest.ticks - 1, Math.floor(tick))), i) : null;
     b.innerHTML = `<span class="dot" style="background:${f.color}"></span>${f.name} <span style="color:#8b98a5">${f.sex === "male" ? "♂" : "♀"}</span> ${md ? md.emoji : ""}`;
-    b.onclick = () => { selected = i; buildFlyPanel(); draw(); };
+    b.onclick = () => { if (selected === i) dossierOn = !dossierOn; else dossierOn = true; selected = i; buildFlyPanel(); draw(); };
     if (i === selected) b.classList.add("active");
     div.appendChild(b);
   });
@@ -166,6 +209,8 @@ function draw() {
   }
   if (k % 66 === 0) buildFlyPanel();
   $<HTMLInputElement>("scrub").value = String(k);
+  if (dossierOn) drawDossier(k);
+  $("dossier").style.display = dossierOn ? "block" : "none";
   if (brainOn || matrixOn) {
     if (brainFly !== selected) { brainFly = selected; brain.load(replay, brainDir, selected); }
     brain.update(replay.spikes(k, selected), m.dt_s);
@@ -197,6 +242,31 @@ function loop() {
   }
 }
 
+function drawDossier(k: number) {
+  if (!replay) return;
+  const f = replay.manifest.flies[selected];
+  const esc = (x: string) => x.replace(/[&<>]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch] as string));
+  $("dossierbody").innerHTML =
+    `<h3 style="color:${f.color}">${f.name} ${f.sex === "male" ? "♂" : "♀"} — dossiê</h3>` +
+    `<div class="bars">${esc(needsBars(replay, k, selected))}</div>` +
+    `<h3>Traços e gostos</h3><ul>${traits(replay, k, selected).map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` +
+    `<h3>Relações</h3><ul>${relationLines(replay, k, selected).map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` +
+    `<h3>Últimos acontecimentos</h3><ul class="log">${recentLog(replay, k, selected).map((t) => `<li>${esc(t)}</li>`).join("")}</ul>`;
+}
+
+function godCommand(cmd: string, el?: HTMLElement) {
+  if (!live || !replay) { $("livestatus").textContent = "🔴 o modo Deus só age ao vivo"; return; }
+  const name = replay.manifest.flies[selected].name;
+  const k = Math.max(0, Math.min(replay.manifest.ticks - 1, Math.floor(tick)));
+  const x = replay.get(k, selected, "x"), y = replay.get(k, selected, "y");
+  const payload: any = { cmd, fly: name };
+  if (cmd === "teleport") { payload.x = 0; payload.y = 0; payload.level = "surface"; }
+  if (cmd === "add_food" || cmd === "add_ball") { payload.x = x + 2; payload.y = y + 1; }
+  if (cmd === "add_robot") payload.level = "surface";
+  if (cmd === "set_need") { payload.need = el?.dataset.need ?? "romance"; payload.value = 1.0; }
+  live.send(payload);
+}
+
 function setBrainUI() {
   brainCanvas.style.display = brainOn || matrixOn ? "block" : "none";
   $("brainpanel").style.display = brainOn || matrixOn ? "block" : "none";
@@ -205,6 +275,10 @@ function setBrainUI() {
 }
 $("brainbtn").onclick = () => { brainOn = !brainOn; if (brainOn) matrixOn = false; setBrainUI(); };
 $("matrixbtn").onclick = () => { matrixOn = !matrixOn; if (matrixOn) brainOn = false; setBrainUI(); };
+$("godbtn").onclick = () => { const g = $("god"); g.style.display = g.style.display === "block" ? "none" : "block"; };
+document.querySelectorAll<HTMLButtonElement>("#god button[data-cmd]").forEach((b) => (b.onclick = () => godCommand(b.dataset.cmd!, b)));
+document.querySelectorAll<HTMLInputElement>("#god input[data-mute]").forEach((c) => (c.onchange = () => live?.send({ cmd: "mute", channel: c.dataset.mute, on: c.checked })));
+$<HTMLInputElement>("scrub").addEventListener("input", () => { liveFollow = false; });
 $("recbtn").onclick = () => {
   if (recorder) { recorder.stop(); recorder = null; $("recbtn").textContent = "⏺ vídeo"; return; }
   const stream = (renderer.domElement as HTMLCanvasElement).captureStream(30);
@@ -222,7 +296,7 @@ $("recbtn").onclick = () => {
   if (!playing) $("play").click();
 };
 
-$("play").onclick = () => { playing = !playing; $("play").textContent = playing ? "❚❚" : "▶"; if (replay && tick >= replay.manifest.ticks - 1) tick = 0; };
+$("play").onclick = () => { if (live) { liveFollow = !liveFollow; $("play").textContent = liveFollow ? "❚❚" : "▶"; return; } playing = !playing; $("play").textContent = playing ? "❚❚" : "▶"; if (replay && tick >= replay.manifest.ticks - 1) tick = 0; };
 $<HTMLSelectElement>("speed").onchange = (e) => (speed = +(e.target as HTMLSelectElement).value);
 $<HTMLSelectElement>("cam").onchange = (e) => (camMode = (e.target as HTMLSelectElement).value);
 $("diarybtn").onclick = () => { const d = $("diary"); d.style.display = d.style.display === "block" ? "none" : "block"; };

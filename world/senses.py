@@ -20,6 +20,7 @@ class Senses:
         self.objects = objects
         self.prev_theta: dict[tuple[str, str], float] = {}   # (mosca, alvo) -> tamanho angular anterior
         self.day = cfg["arena"]
+        self.mute = {"song": False, "cva": False, "contact": False}   # modo Deus: "trocar a lingua"
 
     def light(self, t: float) -> float:
         T = float(self.day["day_length_s"])
@@ -85,16 +86,16 @@ class Senses:
             d = math.hypot(o.x - b.x, o.y - b.y)
             br = bearing(b.x, b.y, b.heading, o.x, o.y)
             sl, sr = sides_from_bearing(br, float(self.s["side_sharpness"]))
-            if o.sex == "male":
+            if o.sex == "male" and not self.mute["cva"]:
                 cl = cva_str * self._gauss(lx, ly, o.x, o.y, 1.0, cva_sigma)
                 cr = cva_str * self._gauss(rx, ry, o.x, o.y, 1.0, cva_sigma)
                 add("orn_da1", cl, cr)
                 add("orn_dl3", cl, cr)
-            if d < 2 * float(self.f["contact_radius_cm"]):
+            if d < 2 * float(self.f["contact_radius_cm"]) and not self.mute["contact"]:
                 add("ppk23", sl, sr)          # so o macho tem a populacao; na femea e ignorado
                 add("leg_grn", 0.5 * sl, 0.5 * sr)
                 add("jo_ce", 0.5 * sl, 0.5 * sr)
-            if songs.get(o.name) and d < float(self.s["song_radius_cm"]):
+            if songs.get(o.name) and d < float(self.s["song_radius_cm"]) and not self.mute["song"]:
                 a = 1.0 / (1.0 + d)
                 add("jo_a", a * sl, a * sr)
                 add("jo_b", a * sl, a * sr)

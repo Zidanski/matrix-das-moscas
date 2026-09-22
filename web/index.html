@@ -28,6 +28,15 @@
       #braincanvas { position: absolute; right: 10px; bottom: 270px; width: 320px; height: 260px; border-radius: 8px; background: rgba(0,0,0,0.6); display: none; }
       body.matrix #braincanvas { inset: 0; width: 100%; height: 100%; border-radius: 0; background: #000; z-index: 0; }
       body.matrix canvas.world { opacity: 0.35; position: relative; z-index: 1; }
+      #god { display: none; position: absolute; left: 10px; bottom: 60px; width: min(620px, calc(100% - 20px)); background: var(--panel); padding: 10px 14px; border-radius: 8px; font-size: 12px; }
+      #god .row { margin: 6px 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+      #god button { background: #2b3440; color: var(--fg); border: 1px solid #456; border-radius: 6px; padding: 3px 8px; font: inherit; cursor: pointer; }
+      #god label { margin-right: 6px; }
+      #dossier { display: none; position: absolute; right: 10px; top: 200px; width: 340px; max-height: calc(100% - 300px); overflow: auto; background: var(--panel); padding: 10px 12px; border-radius: 8px; font-size: 12px; }
+      #dossier h3 { margin: 6px 0 4px; font-size: 13px; }
+      #dossier ul { margin: 0; padding-left: 16px; }
+      #dossier .log li { color: var(--muted); }
+      #dossier .bars { font-family: ui-monospace, monospace; white-space: pre-wrap; }
       #load { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--bg); color: var(--muted); font-size: 16px; }
     </style>
   </head>
@@ -47,8 +56,27 @@
         <button id="brainbtn" title="painel do cérebro da mosca selecionada">🧠 cérebro</button>
         <button id="matrixbtn" title="corte Matrix: o cérebro por trás do mundo">🟩 Matrix</button>
         <button id="recbtn" title="gravar vídeo (webm)">⏺ vídeo</button>
+        <button id="godbtn" title="modo Deus (só ao vivo)">⚡ Deus</button>
+        <span id="livestatus" class="muted"></span>
       </div>
       <div id="diary"></div>
+      <div id="dossier"><div id="dossierbody"></div></div>
+      <div id="god">
+        <b>⚡ Modo Deus</b> <span class="muted">(age na simulação ao vivo; a mosca-alvo é a selecionada)</span><br>
+        <div class="row"><b>Língua</b>
+          <label><input type="checkbox" data-mute="song"> mudo canção</label>
+          <label><input type="checkbox" data-mute="cva"> mudo feromônio (cVA)</label>
+          <label><input type="checkbox" data-mute="contact"> mudo contato</label></div>
+        <div class="row"><b>Cérebro da selecionada</b>
+          <button data-cmd="reset_brain">reiniciar</button> <button data-cmd="save_brain">salvar estado</button>
+          <button data-cmd="restore_brain">restaurar estado</button> <button data-cmd="ignite">convulsão</button></div>
+        <div class="row"><b>Corpo</b>
+          <button data-cmd="feed">alimentar</button> <button data-cmd="teleport">teleportar p/ centro</button>
+          <button data-cmd="set_need" data-need="romance">romance no máximo</button> <button data-cmd="set_need" data-need="fun">diversão no máximo</button></div>
+        <div class="row"><b>Mundo</b>
+          <button data-cmd="add_food">+ comida (perto da selecionada)</button> <button data-cmd="add_ball">+ bola</button>
+          <button data-cmd="add_robot">+ robô na superfície</button> <button data-cmd="pause">pausar</button> <button data-cmd="resume">continuar</button></div>
+      </div>
       <div id="brainpanel"><div id="braininfo" class="muted"></div><canvas id="traces" width="300" height="140"></canvas></div>
       <canvas id="braincanvas"></canvas>
       <div id="load">carregando replay…</div>

@@ -29,6 +29,9 @@ from .lab import Lab
 from .robots import RobotFleet
 from .secrets import Secrets
 from .diary import write_diary
+from .social import SocialLayer
+from .geometry import Patch, Sphere
+from .robots import Robot
 
 
 # ----------------------------------------------------------------------------
@@ -54,6 +57,22 @@ def _classify(neurons) -> np.ndarray:
     return out
 
 
+def _step_with_ignition(fly, state, pack):
+    import numpy as np
+    from brain.types import populations
+    idx, rate = fly.encoder.encode(state)
+    kc = populations(pack).get("kc", np.zeros(0, np.int32))
+    extra = kc[: min(300, len(kc))] if len(kc) else np.arange(min(300, pack.n), dtype=np.int32)
+    fly.engine.set_poisson(np.concatenate([idx, extra]).astype(np.int32), np.concatenate([rate, np.full(len(extra), 200.0)]))
+    before = int(fly.engine.counts.sum())
+    fly.engine.run(fly.dt_ms, record=False)
+    fly.last_window_spikes = int(fly.engine.counts.sum()) - before
+    thr = float(fly.cfg["loop"]["ignition_spikes_per_100ms"]) * fly.dt_ms / 100.0
+    fly.ignited = fly.last_window_spikes > thr
+    fly.t_ms += fly.dt_ms
+    return fly.decoder.decode(fly.engine.counts, fly.dt_ms)
+
+
 def _fly_worker(conn, pack_name: str, identity: dict, cfg: dict, control_seed: int | None):
     from brain.pack import ConnectomePack
     from brain.shuffle import shuffled_pack
@@ -73,13 +92,36 @@ def _fly_worker(conn, pack_name: str, identity: dict, cfg: dict, control_seed: i
     conn.send({"ok": True, "hud": fly.hud_label, "n": pack.n, "missing": fly.encoder.missing,
                "soma": xyz, "classes": classes, "class_names": CLASS_NAMES})
     prev = fly.engine.counts.copy()
+    saved = None
+    ignite_until = -1.0
     while True:
         msg = conn.recv()
         if msg is None:
             break
+        if isinstance(msg, dict):            # comando do modo Deus
+            cmd = msg.get("cmd")
+            eng = fly.engine
+            if cmd == "reset":
+                eng.reset(); fly.decoder.reader.reset(); prev = eng.counts.copy()
+            elif cmd == "save":
+                saved = {k: getattr(eng, k).copy() for k in ("v", "g", "rfc_end", "active", "act_list", "n_act", "ring", "ring_n", "counts")} | {"step": eng.step}
+            elif cmd == "restore" and saved is not None:
+                for k, v in saved.items():
+                    if k == "step":
+                        eng.step = v
+                    else:
+                        getattr(eng, k)[...] = v
+                prev = eng.counts.copy()
+            elif cmd == "ignite":
+                ignite_until = fly.t_ms + 600.0
+            conn.send({"ok": True, "cmd": cmd, "saved": saved is not None})
+            continue
         state, hunger = msg
         fly.encoder.hunger_gain = hunger
-        m = fly.step(state)
+        if fly.t_ms < ignite_until:          # convulsao induzida: 300 neuronios centrais a 200 Hz
+            m = _step_with_ignition(fly, state, pack)
+        else:
+            m = fly.step(state)
         cnt = fly.engine.counts
         fired = np.flatnonzero(cnt[sample] > prev[sample]).astype(np.uint16) if len(sample) else np.zeros(0, np.uint16)
         prev = cnt.copy()
@@ -99,6 +141,10 @@ class RemoteFly:
         self.conn.send((state, hunger))
 
     def recv(self):
+        return self.conn.recv()
+
+    def command(self, cmd: str) -> dict:
+        self.conn.send({"cmd": cmd})
         return self.conn.recv()
 
     def close(self):
@@ -127,6 +173,9 @@ class LocalFly:
     def recv(self):
         return self._out
 
+    def command(self, cmd: str) -> dict:
+        return {"ok": True, "cmd": cmd}
+
     def close(self):
         pass
 
@@ -137,7 +186,7 @@ class LocalFly:
 class Day:
     def __init__(self, seconds: float, brain_mode: str = "reduced", out_dir: Path | str = "runs/day",
                  world_cfg: dict | None = None, iface_cfg: dict | None = None, control_fly: str | None = None,
-                 fly_factory=None, day_index: int = 0, log=print):
+                 fly_factory=None, day_index: int = 0, log=print, on_tick=None, commands=None):
         self.w = world_cfg or load_world()
         self.cfg = iface_cfg or load_config()
         self.seconds = float(seconds)
@@ -163,6 +212,15 @@ class Day:
             self.bodies.append(FlyBody(f["name"], f["sex"], r * math.cos(a), r * math.sin(a), rng.random() * 2 * math.pi, idx=i))
         self.rate_pops = [p for p in OUTPUTS]
         self.stats = {}
+        self.social = SocialLayer(self.w, self.bodies, seed=day_index)
+        self.on_tick = on_tick            # modo ao vivo: chamado a cada tick com o quadro
+        self.commands = commands          # fila de comandos do modo Deus (objetos com get_nowait)
+        self.paused = False
+        self.stop = False
+        self.flies = []
+        self.writer = None
+        self.world_changes: list[dict] = []
+        self.pending_events: list = []
 
     def _pack_for(self, sex: str) -> str:
         key = f"{sex}_{'full' if self.brain_mode == 'full' else 'reduced'}"
@@ -183,6 +241,7 @@ class Day:
     def run(self) -> Path:
         t0 = time.time()
         flies = self._spawn_brains()
+        self.flies = flies
         n_ticks = int(round(self.seconds / self.dt))
         manifest = {"world": self.w, "interface": self.cfg, "dt_s": self.dt, "seconds": self.seconds,
                     "brain_mode": self.brain_mode, "day_index": self.day_index,
@@ -195,6 +254,10 @@ class Day:
                     "robots": [{"name": r.name, "level": r.level, "route": r.route, "r": r.r, "night_only": r.night_only} for r in (self.robots.robots if self.robots else [])],
                     "n_robots": len(self.robots.robots) if self.robots else 0}
         writer = ReplayWriter(self.out_dir, manifest, self.rate_pops, len(self.bodies), len(self.objects.spheres), input_pops=INPUTS)
+        self.writer = writer
+        for (pt, pk, pf, pd) in self.pending_events:
+            writer.add_event(pt, pk, pf, **pd)
+        self.pending_events = []
         for i, fl in enumerate(flies):
             writer.add_brain_sample(i, fl.info["soma"], fl.info["classes"], fl.info["class_names"], fl.info["n"])
         songs = {b.name: False for b in self.bodies}
@@ -206,9 +269,15 @@ class Day:
         encounters = set()
         captures = {b.name: 0 for b in self.bodies}
         last_stuck: dict[str, float] = {}
-        for k in range(n_ticks):
+        k = -1
+        while k + 1 < n_ticks and not self.stop:
+            k += 1
             t = k * self.dt
             self.physics.t = t
+            self._process_commands(t)
+            while self.paused and not self.stop:
+                self._process_commands(t)
+                time.sleep(0.05)
             robots = self.robots.robots if self.robots else []
             states = [self.senses.sense(b, self.bodies, songs, t, self.dt, robots) for b in self.bodies]
             for b, st in zip(self.bodies, states):
@@ -222,10 +291,19 @@ class Day:
                     flies[i].send(states[i], self.bodies[i].hunger_gain)
                 for i in grp:
                     outs[i] = flies[i].recv()
+            # camada social gamificada: assume quando o cerebro esta ocioso
+            motors = {b.name: MotorState(**out["motor"]) for b, out in zip(self.bodies, outs)}
+            overrides, social_events = self.social.step(self.bodies, motors, self.objects.spheres, t, self.dt)
+            for e in social_events:
+                writer.add_event(t, e["kind"], e["flies"], **{kk: v for kk, v in e.items() if kk not in ("kind", "flies")})
             rows = []
             for b, out, st in zip(self.bodies, outs, states):
                 writer.add_spikes(out.get("fired", np.zeros(0, np.uint16)))
-                m = MotorState(**out["motor"])
+                m = motors[b.name]
+                gamified = 0.0
+                if b.name in overrides:
+                    m = overrides[b.name]
+                    gamified = 1.0
                 if out["ignited"]:
                     ignited_total[b.name] += 1
                 self.physics.apply_motor(b, m, self.dt, loom_side[b.name])
@@ -252,7 +330,8 @@ class Day:
                 if m.jump and b.jump_t > 0.1:
                     writer.add_event(t, "salto", [b.name], loom=round(loom_side[b.name], 2))
                 row = [b.x, b.y, b.z, b.heading, b.v, b.omega, STATE_IDS.get(b.state, 0), b.hunger_gain, float(out["ignited"]),
-                       float(out["spikes"]), float(m.feed), float(m.jump), float(m.song), float(m.court), float(b.stuck), float(LEVEL_IDS[b.level])]
+                       float(out["spikes"]), float(m.feed), float(m.jump), float(m.song), float(m.court), float(b.stuck), float(LEVEL_IDS[b.level]),
+                       gamified] + self.social.rows(b.name)
                 r = m.rates_hz
                 for p in self.rate_pops:
                     d = r.get(p, {"all": 0.0, "L": 0.0, "R": 0.0})
@@ -292,7 +371,13 @@ class Day:
                             writer.add_event(t, "encontro", [bi.name, bj.name], sexos=f"{bi.sex[0]}{bj.sex[0]}")
                     else:
                         encounters.discard(key)
-            writer.add_frame(rows, [(s.x, s.y) for s in self.objects.spheres], world_row)
+            writer.add_frame(rows, [(s.x, s.y) for s in self.objects.spheres[:writer.manifest["n_spheres"]]], world_row)
+            if self.on_tick is not None:
+                self.on_tick({"tick": k, "t": t, "rows": rows, "spheres": [(s.x, s.y) for s in self.objects.spheres], "world": world_row,
+                              "fired": [out.get("fired", np.zeros(0, np.uint16)).tolist() for out in outs],
+                              "events": [e for e in writer.events if e["t"] == round(t, 3)], "light": self.senses.light(t),
+                              "changes": self.world_changes})
+                self.world_changes = []
             if k % max(1, n_ticks // 10) == 0:
                 self.log(f"  t={t:5.1f}s  " + " ".join(f"{b.name}:{b.state[:4]}" for b in self.bodies) + f"  ({time.time()-t0:.0f} s)")
         for fl in flies:
@@ -302,6 +387,7 @@ class Day:
             self.stats[b.name]["tempo_no_subsolo_s"] = round(b.time_in_lab, 2)
             self.stats[b.name]["capturas"] = captures[b.name]
         secrets = self.secrets.summary() if self.secrets else {}
+        self.stats["_dia"]["social"] = self.social.summary()
         self.stats["_dia"]["segredos"] = {k: {"quase": v["quase"], "disparou": v["disparou"]} for k, v in secrets.items() if isinstance(v, dict)}
         self.stats["_dia"]["fugiram"] = secrets.get("fugiram", [])
         diary = write_diary(self.day_index, self.seconds, manifest["flies"], self.stats, writer.events, secrets,
@@ -311,6 +397,65 @@ class Day:
         d = writer.close({"metrics": self.stats, "wall_s": time.time() - t0, "secrets": secrets, "diary": diary})
         self.log(f"[dia {self.day_index}] {self.seconds:.0f} s bio em {time.time()-t0:.0f} s de parede -> {d}")
         return d
+
+    # ------------------------------------------------------------ modo Deus
+    def _process_commands(self, t: float):
+        if self.commands is None:
+            return
+        while True:
+            try:
+                cmd = self.commands.get_nowait()
+            except Exception:  # noqa: BLE001
+                return
+            self.apply_command(cmd, t)
+
+    def apply_command(self, cmd: dict, t: float) -> dict:
+        kind = cmd.get("cmd")
+        fly = cmd.get("fly")
+        body = next((b for b in self.bodies if b.name == fly), None)
+        idx = body.idx if body else None
+        res = {"ok": True, "cmd": kind}
+        if kind == "pause":
+            self.paused = True
+        elif kind == "resume":
+            self.paused = False
+        elif kind == "stop":
+            self.stop = True; self.paused = False
+        elif kind == "mute":
+            self.senses.mute[cmd.get("channel", "song")] = bool(cmd.get("on", True))
+        elif kind in ("reset_brain", "save_brain", "restore_brain", "ignite") and idx is not None:
+            res = self.flies[idx].command({"reset_brain": "reset", "save_brain": "save", "restore_brain": "restore", "ignite": "ignite"}[kind])
+        elif kind == "add_food":
+            x, y = float(cmd.get("x", 0.0)), float(cmd.get("y", 0.0))
+            pch = Patch(f"comida_deus_{len(self.objects.patches)}", x, y, 1.2, "sugar", 6.0)
+            self.objects.patches.append(pch)
+            self.world_changes.append({"type": "patch", "x": x, "y": y, "r": 1.2, "kind": "sugar", "name": pch.name})
+        elif kind == "add_ball":
+            x, y = float(cmd.get("x", 0.0)), float(cmd.get("y", 0.0))
+            sp = Sphere(f"bola_deus_{len(self.objects.spheres)}", x, y, 1.0, cmd.get("surface", "none"), 0.4)
+            self.objects.spheres.append(sp)
+            self.world_changes.append({"type": "sphere", "x": x, "y": y, "r": 1.0, "surface": sp.surface, "name": sp.name})
+        elif kind == "add_robot" and self.robots is not None:
+            level = cmd.get("level", "surface")
+            route = [[-8, -8], [8, -8], [8, 8], [-8, 8]] if level == "surface" else [[-16, -10], [-4, -10], [-4, 10], [-16, 10]]
+            rc = self.w["lab"]["robots"]
+            r = Robot.from_cfg({"name": f"R{len(self.robots.robots) + 1}", "level": level, "route": route}, rc)
+            self.robots.robots.append(r)
+            self.world_changes.append({"type": "robot", "name": r.name, "level": level, "route": route, "r": r.r})
+        elif kind == "teleport" and body is not None:
+            body.x, body.y = float(cmd.get("x", 0.0)), float(cmd.get("y", 0.0)); body.level = cmd.get("level", "surface"); body.stuck = False
+        elif kind == "feed" and body is not None:
+            body.hunger_gain = 1.0; body.t_last_meal = t
+        elif kind == "set_need" and body is not None:
+            n = self.social.needs[body.name]
+            setattr(n, cmd.get("need", "social"), float(cmd.get("value", 1.0)))
+        else:
+            res = {"ok": False, "cmd": kind, "erro": "comando desconhecido ou mosca invalida"}
+        if self.writer is not None:
+            self.writer.add_event(t, "modo_deus", [fly] if fly else [], comando=kind)
+        else:
+            self.pending_events.append((t, "modo_deus", [fly] if fly else [], {"comando": kind}))
+        return res
 
     def _metrics(self, near, ignited_total) -> dict:
         out = {}

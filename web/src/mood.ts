@@ -37,6 +37,8 @@ export function mood(rp: Replay, k: number, i: number): Mood {
   const back = Math.max(0, k - Math.round(2 / rp.manifest.dt_s));
   for (let j = k; j >= back; j -= 4) if (rp.get(j, i, "jump") > 0 || rp.stateNames[rp.get(j, i, "state")] === "saltando") return { emoji: "😱", word: "assustada", color: "#ff7b54" };
   if (st === "comendo") return { emoji: "😋", word: "comendo, feliz", color: "#7ee787" };
+  if (st === "dancando") return { emoji: "💃", word: "dançando", color: "#ffd166" };
+  if (st === "flertando") return { emoji: "😘", word: "flertando", color: "#ff8fab" };
   if (st === "cantando" || st === "cortejando") return { emoji: "😍", word: "apaixonado", color: "#ff8fab" };
   if (hunger > 1.6) return { emoji: "😫", word: "faminta", color: "#f4a261" };
   if (hunger > 1.25) return { emoji: "😐", word: "com fome", color: "#ffd166" };
