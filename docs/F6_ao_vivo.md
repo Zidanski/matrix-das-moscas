@@ -60,7 +60,7 @@ derivado dos eventos e campos gravados, no replay ou ao vivo.
 
 ## 6. Verificação
 
-Testes: 40 passam (`tests/test_social.py` cobre a camada social, o modo Deus
+Testes: 39 passam (`tests/test_social.py` cobre a camada social, o modo Deus
 e um dia com fantoches ociosos). Servidor ao vivo testado com cliente Python
 (hello, 400 ticks, comandos aplicados) e no navegador: transmissão, dossiê,
 painel Deus (comida, convulsão, romance no máximo), objetos criados ao vivo.
