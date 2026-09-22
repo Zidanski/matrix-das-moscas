@@ -55,10 +55,10 @@ resize();
 async function boot() {
   const runs = await listRuns();
   const sel = $<HTMLSelectElement>("run");
-  sel.innerHTML = `<option value="${LIVE}">🔴 AO VIVO (uv run matrix live)</option>` + runs.map((r) => `<option value="${r}">${r}</option>`).join("");
+  sel.innerHTML = `<option value="${LIVE}">🔴 AO VIVO</option>` + runs.map((r) => `<option value="${r}">${r}</option>`).join("");
   sel.onchange = () => (sel.value === LIVE ? openLive() : open(sel.value));
   if (runs.length) await open(runs[runs.length - 1]);
-  else $("load").textContent = "nenhum replay: rode `uv run matrix simulate` e recarregue";
+  else openLive();
 }
 
 function setLiveState(st: string) {
@@ -73,6 +73,7 @@ function setLiveState(st: string) {
 function openLive() {
   if (live) live.close();
   document.body.classList.add("live");
+  $<HTMLSelectElement>("run").value = LIVE;
   $("load").style.display = "flex"; $("load").textContent = "conectando ao servidor ao vivo…";
   brainDir = ""; brainFly = -1; replay = null; liveFollow = true;
   live = new LiveClient("ws://localhost:8765", {
@@ -111,6 +112,7 @@ function openLive() {
 async function open(dir: string) {
   if (live) { live.close(); live = null; $("livestatus").textContent = ""; document.body.classList.remove("live"); }
   $("load").style.display = "flex";
+  $<HTMLSelectElement>("run").value = dir;      // o seletor mostra o que esta aberto de fato
   brainDir = dir; brainFly = -1;
   replay = await loadReplay(dir);
   if (world) world.scene.clear();
@@ -308,6 +310,7 @@ $("recbtn").onclick = () => {
   if (!playing) $("play").click();
 };
 
+$("livebtn").onclick = () => { if (!live) openLive(); };
 $("stopbtn").onclick = () => live?.send({ cmd: "stop" });
 $("resetbtn").onclick = () => { live?.send({ cmd: "reset" }); liveFollow = true; };
 $("nowbtn").onclick = () => { liveFollow = true; if (replay) { tick = replay.manifest.ticks - 1; draw(); } };
