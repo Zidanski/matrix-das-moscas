@@ -358,6 +358,7 @@ export class FlyMesh {
   bubbleText = "";
   cards: THREE.Group;
   cutlery: THREE.Group;
+  legs: THREE.Mesh[] = [];
   fork!: THREE.Group; knife!: THREE.Group;
   hat: THREE.Group;
   body: THREE.Mesh;
@@ -388,6 +389,7 @@ export class FlyMesh {
       leg.position.set((i % 3 - 1) * L * 0.3, -L * 0.2, (i < 3 ? 1 : -1) * L * 0.35);
       leg.rotation.x = (i < 3 ? 1 : -1) * 0.7;
       this.group.add(leg);
+      this.legs.push(leg);
     }
     this.label = makeLabel(info.name + (info.control ? " (controle)" : ""), info.color);
     this.label.position.y = L * 2.2;
@@ -449,7 +451,18 @@ export class FlyMesh {
       return;
     }
     this.hat.position.y = L * 0.24;
-    if (state === "saltando") {
+    if (state !== "convulsao") this.legs.forEach((l, i) => { l.rotation.x = (i < 3 ? 1 : -1) * 0.7; l.rotation.z = 0; });
+    if (state === "convulsao") {
+      // convulsao: tremedeira violenta, rola de lado, pernas se debatendo, chapeu pulando
+      const j = (a: number) => (Math.random() - 0.5) * a;
+      this.group.position.x += j(0.16); this.group.position.z += j(0.16); this.group.position.y += Math.abs(j(0.25));
+      this.group.rotation.x = j(1.0);
+      this.group.rotation.z = 1.1 * Math.sin(t * 37) + j(0.6);
+      this.legs.forEach((l, i) => { l.rotation.x = (i < 3 ? 1 : -1) * 0.7 + Math.sin(t * 55 + i * 1.7) * 1.1; l.rotation.z = j(0.8); });
+      this.hat.rotation.z = j(1.2); this.hat.position.y = L * 0.24 + Math.abs(j(0.35));
+      for (const w of this.wings) w.rotation.z = w.userData.side * (0.15 + 1.5 * Math.sin(t * 90 + j(3)));
+    } else if (state === "saltando") {
+      this.legs.forEach((l, i) => { l.rotation.x = (i < 3 ? 1 : -1) * 0.7; l.rotation.z = 0; });
       this.group.position.y += 0.9 * Math.abs(Math.sin(t * 26));       // arco do salto
     } else if (state === "comendo") {
       // refeicao com garfo e faca: alternam subindo e descendo, cabeca acena

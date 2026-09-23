@@ -4,6 +4,7 @@ import { Replay, type Manifest, type ReplayEvent } from "./replay";
 export class LiveReplay extends Replay {
   cap = 0;
   somaCache: Record<number, Float32Array> = {};
+  firstTick = -1;            // primeiro tick recebido (antes dele nao ha quadros: reconexao no meio do dia)
   spikesByTick: Map<number, Uint16Array[]> = new Map();
   constructor(m: Manifest) {
     super(m, new Float32Array(0), new Float32Array(0), [], new Float32Array(0));
@@ -19,7 +20,9 @@ export class LiveReplay extends Replay {
   }
   push(msg: any) {
     const k: number = msg.tick;
-    if (k >= this.cap) this.grow(this.cap * 2);
+    // reconexao no meio do dia (F5): o primeiro tick pode ser o 19 000; cresce ate caber
+    if (this.firstTick < 0) this.firstTick = k;
+    while (k >= this.cap) this.grow(this.cap * 2);
     const nf = this.nf, nfl = this.manifest.n_flies;
     for (let i = 0; i < nfl; i++) this.frames.set(msg.rows[i], (k * nfl + i) * nf);
     const ns = this.manifest.n_spheres;

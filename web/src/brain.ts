@@ -54,22 +54,38 @@ export class BrainCloud {
     void rp;
   }
   /** acende os neuronios que dispararam neste tick; decai os demais */
-  update(fired: Uint16Array, dt: number) {
+  update(fired: Uint16Array, dt: number, ignited = false) {
     if (!this.points) return;
     const decay = Math.exp(-dt / 0.12);
     for (let i = 0; i < this.n; i++) this.heat[i] *= decay;
     for (let k = 0; k < fired.length; k++) this.heat[fired[k]] = 1.0;
     const col = this.colors;
+    // convulsao (ignicao): tudo pulsa em vermelho, os que disparam ficam brancos, a camera treme
+    const pulse = ignited ? 0.55 + 0.45 * Math.sin(performance.now() / 45) : 0;
     for (let i = 0; i < this.n; i++) {
       const h = this.heat[i];
       const b = i * 3;
-      col[b] = this.base[b] + h * (1.0 - this.base[b]);
-      col[b + 1] = this.base[b + 1] + h * (0.95 - this.base[b + 1]);
-      col[b + 2] = this.base[b + 2] + h * (0.6 - this.base[b + 2]);
+      if (ignited) {
+        col[b] = Math.min(1, this.base[b] + 0.6 * pulse + h);
+        col[b + 1] = this.base[b + 1] * (1 - pulse) * 0.5 + h * 0.9;
+        col[b + 2] = this.base[b + 2] * (1 - pulse) * 0.5 + h * 0.8;
+      } else {
+        col[b] = this.base[b] + h * (1.0 - this.base[b]);
+        col[b + 1] = this.base[b + 1] + h * (0.95 - this.base[b + 1]);
+        col[b + 2] = this.base[b + 2] + h * (0.6 - this.base[b + 2]);
+      }
     }
     (this.points.geometry.getAttribute("color") as THREE.BufferAttribute).needsUpdate = true;
-    this.angle += dt * 0.25;
+    this.angle += dt * (ignited ? 3.0 : 0.25);
     this.points.rotation.y = this.angle;
+    if (ignited) {
+      this.camera.position.set((Math.random() - 0.5) * 0.25, 0.6 + (Math.random() - 0.5) * 0.25, 2.6 + (Math.random() - 0.5) * 0.3);
+      this.points.scale.setScalar(1 + 0.08 * Math.sin(performance.now() / 30));
+    } else {
+      this.camera.position.set(0, 0.6, 2.6);
+      this.points.scale.setScalar(1);
+    }
+    this.camera.lookAt(0, 0, 0);
   }
 }
 

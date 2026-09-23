@@ -69,9 +69,9 @@ def _step_with_ignition(fly, state, pack):
     before = int(fly.engine.counts.sum())
     fly.engine.run(fly.dt_ms, record=False)
     fly.last_window_spikes = int(fly.engine.counts.sum()) - before
-    thr = float(fly.cfg["loop"]["ignition_spikes_per_100ms"]) * fly.dt_ms / 100.0
-    fly.ignited = fly.last_window_spikes > thr
-    fly.t_ms += fly.dt_ms
+    # convulsao induzida pelo modo Deus: o estado e forcado durante a inducao (a ignicao natural
+    # continua dependendo do limiar de disparos); os 300 KCs a 200 Hz garantem a tempestade visivel
+    fly.ignited = True
     return fly.decoder.decode(fly.engine.counts, fly.dt_ms)
 
 
@@ -103,7 +103,7 @@ def _fly_worker(conn, pack_name: str, identity: dict, cfg: dict, control_seed: i
                "soma": xyz, "classes": classes, "class_names": CLASS_NAMES})
     prev = fly.engine.counts.copy()
     saved = None
-    ignite_until = -1.0
+    ignite_left = 0                      # janelas de 15 ms que faltam da convulsao induzida
     while True:
         msg = conn.recv()
         if msg is None:
@@ -123,12 +123,13 @@ def _fly_worker(conn, pack_name: str, identity: dict, cfg: dict, control_seed: i
                         getattr(eng, k)[...] = v
                 prev = eng.counts.copy()
             elif cmd == "ignite":
-                ignite_until = fly.t_ms + 600.0
+                ignite_left = 100            # 1,5 s de tempo do cerebro
             conn.send({"ok": True, "cmd": cmd, "saved": saved is not None})
             continue
         state, hunger = msg
         fly.encoder.hunger_gain = hunger
-        if fly.t_ms < ignite_until:          # convulsao induzida: 300 neuronios centrais a 200 Hz
+        if ignite_left > 0:                  # convulsao induzida: 300 neuronios centrais a 200 Hz
+            ignite_left -= 1
             m = _step_with_ignition(fly, state, pack)
         else:
             m = fly.step(state)
@@ -213,6 +214,8 @@ class Day:
         self._rt_sent: dict = {}          # indice -> tick do ultimo envio
         self._rt_steps: dict = {}         # indice -> janelas processadas
         self._rt_cmds: dict = {}          # indice -> comandos do modo Deus esperando o cerebro ficar livre
+        self.rt_speed = 1.0               # ritmo do mundo em relacao ao relogio de parede (0,25x ... 1x), so no tempo real
+        self._wall0: float | None = None  # origem do relogio de parede (None = recalcular)
         self.cfg = iface_cfg or load_config()
         self.seconds = float(seconds)
         self.dt = float(self.cfg["loop"]["dt_ms"]) / 1000.0
@@ -335,7 +338,7 @@ class Day:
         starve_lab_only = bool(self.physics.f.get("starve_only_in_lab", True))
         last_stuck: dict[str, float] = {}
         k = -1
-        wall0 = time.time()
+        self._wall0 = time.time()
         while k + 1 < n_ticks and not self.stop:
             k += 1
             t = k * self.dt
@@ -345,15 +348,19 @@ class Day:
                 while self.paused and not self.stop:
                     self._process_commands(t)
                     time.sleep(0.05)
-                wall0 = time.time() - k * self.dt
+                self._wall0 = None
             if self.realtime:
-                # relogio de parede: espera se adiantou; se atrasou mais de 1 s, nao tenta recuperar em rajada
-                target = wall0 + k * self.dt
+                # relogio de parede (dividido pelo ritmo escolhido): espera se adiantou; se atrasou
+                # mais de 1 s, nao tenta recuperar em rajada
+                step = self.dt / max(0.05, self.rt_speed)
                 now = time.time()
+                if self._wall0 is None:
+                    self._wall0 = now - k * step
+                target = self._wall0 + k * step
                 if now < target:
                     time.sleep(target - now)
                 elif now - target > 1.0:
-                    wall0 = now - k * self.dt
+                    self._wall0 = now - k * step
             robots = self.robots.robots if self.robots else []
             states = [self.senses.sense(b, self.bodies, songs, t, self.dt, robots) for b in self.bodies]
             for b, st in zip(self.bodies, states):
@@ -404,11 +411,13 @@ class Day:
                     b.state = "convulsao"
                 self.physics.update_hunger(b, t, self.dt)
                 # fome mortal (gamificado): so no subsolo, onde nao ha comida; capturada e excecao (o robo a alimenta)
-                if starve_s > 0 and not b.dead and b.state != "capturada" and (b.level == "lab" or not starve_lab_only) \
-                        and b.level != "fora" and t - b.t_last_meal > starve_s:
+                # conta so o tempo passado no subsolo sem comer (na superficie ha comida; a capturada e alimentada)
+                if b.state != "capturada" and not b.dead and (b.level == "lab" or not starve_lab_only) and b.level != "fora":
+                    b.lab_hunger_s += self.dt
+                if starve_s > 0 and not b.dead and b.lab_hunger_s > starve_s:
                     b.dead = True; b.t_death = t; b.state = "morta"; b.v = 0.0; b.omega = 0.0
                     deaths[b.name] = t
-                    writer.add_event(t, "morreu_de_fome", [b.name], sem_comer_s=round(t - b.t_last_meal, 1), onde=b.level)
+                    writer.add_event(t, "morreu_de_fome", [b.name], sem_comer_s=round(b.lab_hunger_s, 1), onde=b.level)
                 songs[b.name] = bool(m.song) and b.sex == "male"
                 if m.court and b.sex == "male" and b.state in ("andando", "parada", "cantando"):
                     b.state = "cortejando" if not m.song else "cantando"
@@ -463,7 +472,7 @@ class Day:
                         # o robo a alimentou la embaixo (excecao da fome) e ela volta "iluminada", contando do mundo magico
                         bb = next((x for x in self.bodies if x.name == e["fly"]), None)
                         if bb is not None:
-                            bb.t_last_meal = t; bb.hunger_gain = 1.0
+                            bb.t_last_meal = t; bb.hunger_gain = 1.0; bb.lab_hunger_s = 0.0
                             bb.enlightened = True; bb.enlightened_t = t
                             self.social.enlighten(bb.name, t)
                             writer.add_event(t, "voltou_iluminada", [bb.name], robot=e.get("robot"))
@@ -543,7 +552,10 @@ class Day:
         body = next((b for b in self.bodies if b.name == fly), None)
         idx = body.idx if body else None
         res = {"ok": True, "cmd": kind}
-        if kind == "pause":
+        if kind == "speed":
+            self.rt_speed = max(0.1, min(4.0, float(cmd.get("value", 1.0))))
+            self._wall0 = None
+        elif kind == "pause":
             self.paused = True
         elif kind == "resume":
             self.paused = False
@@ -581,7 +593,7 @@ class Day:
             body.hunger_gain = 1.0; body.t_last_meal = t
         elif kind == "revive" and body is not None:
             ex = tuple(self.w["lab"]["exit_surface"])
-            body.dead = False; body.t_death = -1.0; body.state = "parada"; body.hunger_gain = 1.0; body.t_last_meal = t
+            body.dead = False; body.t_death = -1.0; body.state = "parada"; body.hunger_gain = 1.0; body.t_last_meal = t; body.lab_hunger_s = 0.0
             body.level = "surface"; body.x, body.y = float(ex[0]), float(ex[1]); body.stuck = False
         elif kind == "set_need" and body is not None:
             n = self.social.needs[body.name]

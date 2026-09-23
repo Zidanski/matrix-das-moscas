@@ -29,7 +29,7 @@ const EVENT_TEXT: Record<string, (e: ReplayEvent, me: string, other: string) => 
   segredo_disparado: (e) => `ACIONOU ${e.secret}!`,
   fuga: () => "FUGIU pelo elevador",
   modo_deus: (e) => `sofreu intervenção divina: ${e.comando}`,
-  morreu_de_fome: (e) => `MORREU DE FOME no laboratório, depois de ${e.sem_comer_s} s sem comer`,
+  morreu_de_fome: (e) => `MORREU DE FOME no laboratório, depois de ${e.sem_comer_s} s lá embaixo sem comer`,
   voltou_iluminada: (e) => `voltou à superfície (${e.robot}) falando de um mundo mágico que viu lá embaixo`,
   acreditou_no_mundo_magico: (e, me, o) => (e.flies[0] === me ? `convenceu ${o} do mundo mágico` : `ouviu ${o} e acreditou no mundo mágico`),
   achou_maluca: (e, me, o) => (e.flies[0] === me ? `ouviu ${o} falar do mundo mágico e achou que enlouqueceu` : `contou do mundo mágico e ${o} achou que enlouqueceu`),

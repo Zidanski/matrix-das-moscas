@@ -75,6 +75,13 @@ function setLiveState(st: string) {
   const label: Record<string, string> = { idle: "pronto: clique ▶ para começar", warming: "preparando os 6 cérebros (pode clicar ▶: começa assim que ficarem prontos)", starting: "começando…", running: "ao vivo", paused: "tempo pausado", stopping: "parando e gravando o dia…" };
   $("livestatus").textContent = "🔴 " + (label[st] ?? st);
   $("play").textContent = st === "running" ? "❚❚" : "▶";
+  $("play").title = st === "running" ? "pausar o tempo" : st === "paused" ? "continuar" : "começar um dia ao vivo";
+  const active = st === "running" || st === "paused";
+  ($("stopbtn") as HTMLButtonElement).disabled = !active;
+  ($("resetbtn") as HTMLButtonElement).disabled = st === "starting" || st === "stopping";
+  ($("nowbtn") as HTMLButtonElement).disabled = !active;
+  ($("play") as HTMLButtonElement).disabled = st === "starting" || st === "stopping";
+  $("livehint").textContent = st === "running" ? "▶/❚❚ pausa o tempo · ⏹ grava o dia · ↺ recomeça com cérebros novos · arraste a linha do tempo para rever e ⏭ volta ao presente" : "";
   if ((st === "idle" || st === "warming") && !replay) {
     $("load").style.display = "flex";
     $("load").innerHTML = `AO VIVO pronto. <button id="bigplay">▶ começar</button>`;
@@ -85,11 +92,14 @@ function setLiveState(st: string) {
 }
 
 function openLive() {
+  openGen++;
   if (live) live.close();
   document.body.classList.add("live");
   $<HTMLSelectElement>("run").value = LIVE;
   $("load").style.display = "flex"; $("load").textContent = "conectando ao servidor ao vivo…";
   brainDir = ""; brainFly = -1; replay = null; liveFollow = true;
+  $("scrub").title = "linha do tempo ao vivo: arraste para rever; ⏭ agora volta ao presente";
+  setTimeout(fillSpeedSelect, 0);
   $("hudbody").innerHTML = '<span class="muted">ao vivo: nenhum dia em curso ainda</span>';
   $("flies").innerHTML = "";
   $("events").innerHTML = "";
@@ -106,7 +116,7 @@ function openLive() {
       world = new World3D(m);
       const R = m.world.arena.radius_cm;
       camera.position.set(R * 1.2, R * 1.0, R * 1.5); controls.target.set(0, 0, 0);
-      tick = 0; buildFlyPanel(); buildEventMarkers();
+      tick = 0; buildFlyPanel(); buildEventMarkers(); fillBrainFlySelect(); fillSpeedSelect();
       $("load").style.display = "none";
       $("diary").innerHTML = "<i>ao vivo: o diário aparece ao fim do dia</i>";
     },
@@ -131,12 +141,17 @@ function openLive() {
   live.connect();
 }
 
+let openGen = 0;   // abrir replay e entrar no ao vivo se cancelam: o ultimo pedido vence (o carregamento e assincrono)
 async function open(dir: string) {
+  const gen = ++openGen;
   if (live) { live.close(); live = null; $("livestatus").textContent = ""; document.body.classList.remove("live"); }
   $("load").style.display = "flex";
   $<HTMLSelectElement>("run").value = dir;      // o seletor mostra o que esta aberto de fato
   brainDir = dir; brainFly = -1;
-  replay = await loadReplay(dir);
+  fillSpeedSelect();
+  const loaded = await loadReplay(dir);
+  if (gen !== openGen) return;   // o usuario entrou no ao vivo (ou abriu outro replay) enquanto este carregava
+  replay = loaded;
   if (world) world.scene.clear();
   world = new World3D(replay.manifest);
   const R = replay.manifest.world.arena.radius_cm;
@@ -161,7 +176,7 @@ function buildFlyPanel() {
     const b = document.createElement("button");
     const md = replay ? mood(replay, Math.max(0, Math.min(replay.manifest.ticks - 1, Math.floor(tick))), i) : null;
     b.innerHTML = `<span class="dot" style="background:${f.color}"></span>${f.name} <span style="color:#8b98a5">${f.sex === "male" ? "♂" : "♀"}</span> ${md ? md.emoji : ""}`;
-    b.onclick = () => { if (selected === i) dossierOn = !dossierOn; else dossierOn = true; selected = i; buildFlyPanel(); draw(); };
+    b.onclick = () => { if (selected === i) dossierOn = !dossierOn; else dossierOn = true; selected = i; buildFlyPanel(); fillBrainFlySelect(); draw(); };
     if (i === selected) b.classList.add("active");
     div.appendChild(b);
   });
@@ -188,7 +203,8 @@ function buildEventMarkers() {
 function draw() {
   if (!replay || !world) return;
   const m = replay.manifest;
-  const k = Math.max(0, Math.min(m.ticks - 1, Math.floor(tick)));   // tick e fracionario durante a reproducao
+  const k0 = replay instanceof LiveReplay && replay.firstTick > 0 ? replay.firstTick : 0;   // reconexao: nao ha quadros antes
+  const k = Math.max(k0, Math.min(m.ticks - 1, Math.floor(tick)));   // tick e fracionario durante a reproducao
   const k1 = Math.min(m.ticks - 1, k + 1);
   const a = k1 > k ? Math.max(0, Math.min(1, tick - k)) : 0;         // fracao entre os quadros k e k1
   // interpolacao so de POSICAO/rumo entre dois quadros gravados (suaviza o ao vivo lento e o 0,25x);
@@ -253,12 +269,14 @@ function draw() {
     controls.target.lerp(new THREE.Vector3(0, 0, 0), 0.2);
   }
   if (k % 66 === 0) buildFlyPanel();
+  // caixa do cerebro logo abaixo do HUD (ate o usuario arrasta-la para outro lugar)
+  if (frameNo % 15 === 0) dockBrainBox();
   $<HTMLInputElement>("scrub").value = String(k);
   if (dossierOn && (frameNo % 6 === 0 || !(playing || live))) drawDossier(k);   // dossie a ~10 Hz: e o mais caro do quadro
   $("dossier").style.display = dossierOn ? "block" : "none";
   if (brainOn || matrixOn) {
     if (brainFly !== selected) { brainFly = selected; brain.load(replay, brainDir, selected); }
-    brain.update(replay.spikes(k, selected), m.dt_s);
+    brain.update(replay.spikes(k, selected), m.dt_s, replay.get(k, selected, "ignited") > 0);
     traces.draw(replay, selected, k);
     const bs = m.brain_samples?.find((b) => b.fly === selected);
     $("braininfo").textContent = bs ? `${m.flies[selected].name}: ${bs.n} somas de ${bs.n_total} neurônios (coordenadas do próprio conectoma) · ${replay.spikes(k, selected).length} disparos nesta janela` : "sem amostra neural neste replay";
@@ -371,13 +389,77 @@ function godCommand(cmd: string, el?: HTMLElement) {
 }
 
 function setBrainUI() {
-  brainCanvas.style.display = brainOn || matrixOn ? "block" : "none";
-  $("brainpanel").style.display = brainOn || matrixOn ? "block" : "none";
+  $("brainbox").classList.toggle("open", brainOn || matrixOn);
   document.body.classList.toggle("matrix", matrixOn);
+  $("brainbtn").classList.toggle("on", brainOn);
+  $("matrixbtn").classList.toggle("on", matrixOn);
+  fillBrainFlySelect();
   if (replay) { brainFly = -1; draw(); }
+}
+function fillBrainFlySelect() {
+  const sel = $<HTMLSelectElement>("brainfly");
+  if (!replay) { sel.innerHTML = ""; return; }
+  const names = replay.manifest.flies.map((f, i) => `<option value="${i}">🧠 ${f.name}</option>`).join("");
+  if (sel.innerHTML !== names) sel.innerHTML = names;
+  sel.value = String(selected);
+}
+function selectFly(i: number) {
+  const n = replay?.manifest.n_flies ?? 6;
+  selected = ((i % n) + n) % n;
+  buildFlyPanel(); fillBrainFlySelect(); draw();
 }
 $("brainbtn").onclick = () => { brainOn = !brainOn; if (brainOn) matrixOn = false; setBrainUI(); };
 $("matrixbtn").onclick = () => { matrixOn = !matrixOn; if (matrixOn) brainOn = false; setBrainUI(); };
+$("brainclose").onclick = () => { brainOn = false; matrixOn = false; setBrainUI(); };
+$("brainmin").onclick = () => { const b = $("brainbox"); b.classList.toggle("min"); $("brainmin").textContent = b.classList.contains("min") ? "+" : "–"; };
+$("brainprev").onclick = () => selectFly(selected - 1);
+$("brainnext").onclick = () => selectFly(selected + 1);
+$<HTMLSelectElement>("brainfly").onchange = (e) => selectFly(+(e.target as HTMLSelectElement).value);
+// painel do cerebro arrastavel (posicao lembrada)
+function brainBoxMoved(): boolean { try { return !!localStorage.getItem("brainbox"); } catch { return false; } }
+/** Encaixa a caixa do cerebro abaixo do HUD se couber acima da barra; senao, a direita do HUD. So ate o usuario arrasta-la. */
+function dockBrainBox() {
+  if (brainBoxMoved() || document.body.classList.contains("matrix")) return;
+  const h = $("hud"), b = $("brainbox");
+  const below = h.offsetTop + h.offsetHeight + 8;
+  const fits = below + b.offsetHeight < innerHeight - 110;
+  const top = fits ? `${below}px` : "10px", left = fits ? "10px" : `${h.offsetLeft + h.offsetWidth + 10}px`;
+  if (b.style.top !== top) b.style.top = top;
+  if (b.style.left !== left) b.style.left = left;
+}
+new ResizeObserver(() => dockBrainBox()).observe($("hud"));
+(() => {
+  const box = $("brainbox"), head = $("brainhead");
+  try { const p = JSON.parse(localStorage.getItem("brainbox") ?? "null"); if (p) { box.style.left = p.left; box.style.top = p.top; } } catch {}
+  let drag: { dx: number; dy: number } | null = null;
+  head.addEventListener("pointerdown", (e) => {
+    if ((e.target as HTMLElement).tagName === "BUTTON" || (e.target as HTMLElement).tagName === "SELECT") return;
+    drag = { dx: e.clientX - box.offsetLeft, dy: e.clientY - box.offsetTop }; head.setPointerCapture(e.pointerId);
+  });
+  head.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    box.style.left = `${Math.max(0, Math.min(innerWidth - 60, e.clientX - drag.dx))}px`;
+    box.style.top = `${Math.max(0, Math.min(innerHeight - 40, e.clientY - drag.dy))}px`;
+  });
+  head.addEventListener("pointerup", () => { if (drag) { drag = null; try { localStorage.setItem("brainbox", JSON.stringify({ left: box.style.left, top: box.style.top })); } catch {} } });
+})();
+// segunda linha da barra: recolhivel (lembrado)
+$("barmore").onclick = () => {
+  document.body.classList.toggle("compact");
+  $("barmore").textContent = document.body.classList.contains("compact") ? "▴" : "▾";
+  try { localStorage.setItem("barcompact", document.body.classList.contains("compact") ? "1" : "0"); } catch {}
+};
+try { if (localStorage.getItem("barcompact") === "1") { document.body.classList.add("compact"); $("barmore").textContent = "▴"; } } catch {}
+// velocidade: no replay e a reproducao (0,25x..4x); no ao vivo e o ritmo do mundo (0,25x..1x), mandado ao servidor
+const SPEEDS_REPLAY = [0.25, 0.5, 1, 2, 4], SPEEDS_LIVE = [0.25, 0.5, 0.75, 1];
+function fillSpeedSelect() {
+  const sel = $<HTMLSelectElement>("speed");
+  const opts = live ? SPEEDS_LIVE : SPEEDS_REPLAY;
+  sel.innerHTML = opts.map((v) => `<option value="${v}">${String(v).replace(".", ",")}×</option>`).join("");
+  sel.value = live ? String(liveSpeed) : String(speed);
+  sel.title = live ? "ritmo do mundo ao vivo em relação ao tempo real (mais lento = os cérebros acompanham mais ticks)" : "velocidade de reprodução do replay";
+}
+let liveSpeed = 1;
 $("godbtn").onclick = () => { const g = $("god"); g.style.display = g.style.display === "block" ? "none" : "block"; };
 document.querySelectorAll<HTMLButtonElement>("#god button[data-cmd]").forEach((b) => (b.onclick = () => godCommand(b.dataset.cmd!, b)));
 document.querySelectorAll<HTMLInputElement>("#god input[data-mute]").forEach((c) => (c.onchange = () => live?.send({ cmd: "mute", channel: c.dataset.mute, on: c.checked })));
@@ -413,11 +495,16 @@ $("play").onclick = () => {
     return;
   }
   playing = !playing; $("play").textContent = playing ? "❚❚" : "▶"; if (replay && tick >= replay.manifest.ticks - 1) tick = 0; };
-$<HTMLSelectElement>("speed").onchange = (e) => (speed = +(e.target as HTMLSelectElement).value);
+$<HTMLSelectElement>("speed").onchange = (e) => {
+  const v = +(e.target as HTMLSelectElement).value;
+  if (live) { liveSpeed = v; live.send({ cmd: "speed", value: v }); }
+  else speed = v;
+};
+fillSpeedSelect();
 $<HTMLSelectElement>("cam").onchange = (e) => { camMode = (e.target as HTMLSelectElement).value; followPrev = null; };
 $("diarybtn").onclick = () => { const d = $("diary"); d.style.display = d.style.display === "block" ? "none" : "block"; };
 addEventListener("keydown", (e) => { if (e.code === "Space") { e.preventDefault(); $("play").click(); } });
 
-(window as any).__dbg = { get world() { return world; }, get replay() { return replay; }, camera, controls, renderer, draw, get camMode() { return camMode; }, get tick() { return tick; }, set tick(v: number) { tick = v; } };
+(window as any).__dbg = { get world() { return world; }, get replay() { return replay; }, camera, controls, renderer, draw, get camMode() { return camMode; }, get tick() { return tick; }, set tick(v: number) { tick = v; }, get liveFollow() { return liveFollow; }, get liveState() { return liveState; }, get liveRate() { return liveRate(); } };
 boot();
 loop();

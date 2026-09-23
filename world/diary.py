@@ -106,7 +106,7 @@ def write_diary(day_index: int, seconds: float, flies: list[dict], metrics: dict
         elif e["kind"] == "robo_congelado":
             L.append(f"- Gerador desligado: {e.get('robot')} congelou aos {_fmt(e['t'], 0)} s.")
         elif e["kind"] == "morreu_de_fome":
-            L.append(f"- {e['flies'][0]} MORREU DE FOME no laboratório aos {_fmt(e['t'], 0)} s, depois de {_fmt(e.get('sem_comer_s', 0), 0)} s sem comer. Lá embaixo não há comida.")
+            L.append(f"- {e['flies'][0]} MORREU DE FOME no laboratório aos {_fmt(e['t'], 0)} s, depois de {_fmt(e.get('sem_comer_s', 0), 0)} s lá embaixo sem comer. No subsolo não há comida.")
         elif e["kind"] == "voltou_iluminada":
             L.append(f"- {e['flies'][0]} voltou à superfície aos {_fmt(e['t'], 0)} s falando de um mundo mágico que viu lá embaixo.")
     L.append("")

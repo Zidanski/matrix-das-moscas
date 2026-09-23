@@ -34,23 +34,45 @@
       #flies button { display: block; width: 100%; text-align: left; background: none; border: 1px solid transparent; color: var(--fg); padding: 4px 6px; border-radius: 6px; cursor: pointer; font: inherit; }
       #flies button.active { border-color: var(--accent); }
       #flies .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
-      #timeline { position: absolute; left: 10px; right: 10px; bottom: 10px; background: var(--panel); padding: 6px 10px; border-radius: 10px; display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; row-gap: 6px; }
-      #timeline input[type=range] { flex: 1 1 160px; min-width: 120px; }
-      #timeline button, #timeline select { background: #1f2933; color: var(--fg); border: 1px solid #334; border-radius: 6px; padding: 5px 9px; font: inherit; cursor: pointer; white-space: nowrap; }
-      #timeline button:hover { background: #2b3844; }
+      #timeline { position: absolute; left: 10px; right: 10px; bottom: 10px; background: var(--panel); padding: 6px 10px; border-radius: 12px; display: flex; flex-direction: column; gap: 6px; border: 1px solid rgba(255,255,255,0.06); }
+      #timeline .row { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
+      #timeline .row.extra { padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08); }
+      body.compact #timeline .row.extra { display: none; }
+      #timeline input[type=range] { flex: 1 1 160px; min-width: 120px; accent-color: var(--accent); }
+      #timeline button, #timeline select { background: #1f2933; color: var(--fg); border: 1px solid #3a4756; border-radius: 8px; padding: 6px 10px; min-height: 32px; font: inherit; cursor: pointer; white-space: nowrap; }
+      #timeline button:hover, #timeline select:hover { background: #2b3844; border-color: #5a6b7d; }
+      #timeline button:active { transform: translateY(1px); }
+      #timeline button:disabled { opacity: 0.4; cursor: default; }
+      #timeline button.on { background: #234; border-color: var(--accent); color: var(--accent); }
+      #timeline button.big { font-size: 16px; min-width: 44px; }
+      #timeline button.danger { background: #3a1d24; border-color: #e63946; }
+      body.live #timeline button.danger { background: #e63946; color: #fff; }
       #timeline .grp { display: flex; gap: 4px; align-items: center; }
-      #timeline .sep { width: 1px; height: 22px; background: #334; }
-      #clock { min-width: 120px; text-align: center; font-variant-numeric: tabular-nums; }
-      #livestatus { position: absolute; left: 50%; transform: translateX(-50%); bottom: 64px; background: var(--panel); border: 1px solid #e63946; border-radius: 14px; padding: 3px 12px; font-size: 12px; white-space: nowrap; z-index: 6; }
+      #timeline .sep { width: 1px; height: 24px; background: #3a4756; }
+      #timeline label.muted { font-size: 11px; }
+      #clock { min-width: 150px; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 12px; }
+      #livestatus { position: absolute; left: 50%; transform: translateX(-50%); top: -14px; background: var(--panel); border: 1px solid #e63946; border-radius: 14px; padding: 2px 12px; font-size: 12px; white-space: nowrap; }
       #livestatus:empty { display: none; }
-      #events { position: absolute; left: 10px; right: 10px; bottom: 54px; height: 14px; pointer-events: none; }
+      .liveonly { display: none !important; }
+      body.live .liveonly { display: inline-flex !important; align-items: center; gap: 4px; }
+      body.live #speedlabel::after { content: " do mundo"; }
+      @media (max-width: 900px) { #timeline button span { display: none; } }
+      #events { position: absolute; left: 10px; right: 10px; bottom: 100px; height: 14px; pointer-events: none; }
       #events span { position: absolute; bottom: 0; width: 2px; height: 14px; }
       #diary { display: none; position: absolute; left: 10px; bottom: 60px; width: min(560px, calc(100% - 20px)); max-height: 60%; overflow: auto; background: var(--panel); padding: 10px 14px; border-radius: 8px; }
       #diary pre { white-space: pre-wrap; font: 12px/1.45 system-ui, sans-serif; margin: 0; }
-      #brainpanel { display: none; position: absolute; right: 10px; bottom: 60px; width: 320px; background: var(--panel); border-radius: 8px; padding: 8px 10px; }
-      #brainpanel canvas { display: block; width: 300px; height: 140px; margin-top: 6px; }
-      #braincanvas { position: absolute; right: 10px; bottom: 270px; width: 320px; height: 260px; border-radius: 8px; background: rgba(0,0,0,0.6); display: none; }
-      body.matrix #braincanvas { inset: 0; width: 100%; height: 100%; border-radius: 0; background: #000; z-index: 0; }
+      #brainbox { display: none; position: absolute; left: 10px; top: 330px; width: 320px; background: var(--panel); border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); overflow: hidden; z-index: 5; }
+      #brainbox.open { display: block; }
+      #brainhead { display: flex; align-items: center; gap: 4px; padding: 4px 6px; background: rgba(255,255,255,0.06); cursor: move; user-select: none; }
+      #brainhead .spacer { flex: 1; }
+      #brainhead button, #brainhead select { background: #1f2933; color: var(--fg); border: 1px solid #3a4756; border-radius: 6px; padding: 2px 7px; font: inherit; cursor: pointer; }
+      #braincanvas { display: block; width: 320px; height: 210px; background: rgba(0,0,0,0.6); }
+      #brainpanel { padding: 6px 10px; }
+      #brainpanel canvas { display: block; width: 300px; height: 110px; margin-top: 6px; }
+      #brainbox.min #brainpanel { display: none; }
+      body.matrix #brainbox { left: 0 !important; top: 0 !important; width: 100%; height: 100%; border-radius: 0; background: transparent; border: none; z-index: 0; pointer-events: none; }
+      body.matrix #brainhead, body.matrix #brainpanel { display: none; }
+      body.matrix #braincanvas { width: 100%; height: 100%; background: #000; }
       body.matrix canvas.world { opacity: 0.35; position: relative; z-index: 1; }
       #god { display: none; position: absolute; left: 10px; bottom: 60px; width: min(620px, calc(100% - 20px)); background: var(--panel); padding: 10px 14px; border-radius: 8px; font-size: 12px; }
       #god .row { margin: 6px 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
@@ -65,11 +87,9 @@
       #dossier .bar { position: relative; height: 9px; background: rgba(255,255,255,0.1); border-radius: 5px; overflow: hidden; }
       #dossier .bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; background: var(--accent); }
       #dossier { top: 190px; }
-      .liveonly { display: none; }
-      body.live .liveonly { display: inline-block; }
-      #load { position: absolute; inset: 0; display: flex; align-items: flex-end; padding-bottom: 96px; box-sizing: border-box; justify-content: center; background: var(--bg); color: var(--muted); font-size: 16px; z-index: 1; pointer-events: none; }
+      #load { position: absolute; inset: 0; display: flex; align-items: flex-end; padding-bottom: 150px; box-sizing: border-box; justify-content: center; background: var(--bg); color: var(--muted); font-size: 16px; z-index: 1; pointer-events: none; }
       #load button { pointer-events: auto; background: #e63946; color: #fff; border: none; border-radius: 10px; padding: 12px 22px; font: inherit; font-size: 18px; cursor: pointer; margin-left: 12px; }
-      #hud, #flies, #timeline, #events, #diary, #god, #dossier, #brainpanel, #braincanvas { z-index: 5; }
+      #hud, #flies, #timeline, #events, #diary, #god, #dossier { z-index: 5; }
     </style>
   </head>
   <body>
@@ -78,23 +98,31 @@
       <div id="flies"></div>
       <div id="events"></div>
       <div id="timeline">
-        <span class="grp"><button id="livebtn" title="entrar no modo ao vivo" style="background:#3a1d24;border-color:#e63946">🔴 AO VIVO</button>
-        <select id="run" title="replay gravado"></select></span>
-        <span class="sep"></span>
-        <span class="grp"><button id="play" title="tocar / pausar">▶</button>
-        <button id="stopbtn" class="liveonly" title="parar o ao vivo e gravar o dia">⏹ parar</button>
-        <button id="resetbtn" class="liveonly" title="reiniciar o ao vivo do zero">↺ reiniciar</button>
-        <button id="nowbtn" class="liveonly" title="voltar a acompanhar o presente">⏭ agora</button></span>
-        <select id="speed" title="velocidade do replay"><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
-        <input id="scrub" type="range" min="0" max="1" step="1" value="0" />
-        <span id="clock" class="muted" style="white-space:nowrap" title="tempo · ritmo em relação ao tempo real (só ao vivo) · quadros por segundo">0,0 s</span>
-        <select id="cam"><option value="orbit">câmera livre</option><option value="follow">seguir mosca</option><option value="top">de cima</option><option value="security">câmera de segurança (lab)</option></select>
-        <button id="diarybtn">📓 diário</button>
-        <button id="brainbtn" title="painel do cérebro da mosca selecionada">🧠 cérebro</button>
-        <button id="matrixbtn" title="corte Matrix: o cérebro por trás do mundo">🟩 Matrix</button>
-        <button id="recbtn" title="gravar vídeo (webm)">⏺ vídeo</button>
-        <button id="godbtn" title="modo Deus (só ao vivo)">⚡ Deus</button>
-        <span id="livestatus" class="muted"></span>
+        <div class="row main">
+          <span class="grp"><button id="livebtn" class="danger" title="entrar no modo ao vivo (simulação em tempo real)">🔴 AO VIVO</button>
+          <select id="run" title="abrir um replay gravado"></select></span>
+          <span class="sep"></span>
+          <span class="grp"><button id="play" class="big" title="tocar / pausar">▶</button>
+          <button id="stopbtn" class="liveonly" title="parar o ao vivo e gravar o dia">⏹ <span>parar</span></button>
+          <button id="resetbtn" class="liveonly" title="reiniciar o ao vivo do zero (novos cérebros)">↺ <span>reiniciar</span></button>
+          <button id="nowbtn" class="liveonly" title="voltar a acompanhar o presente">⏭ <span>agora</span></button></span>
+          <span class="sep"></span>
+          <span class="grp"><label id="speedlabel" for="speed" class="muted">velocidade</label><select id="speed" title="velocidade"></select></span>
+          <input id="scrub" type="range" min="0" max="1" step="1" value="0" title="linha do tempo (arraste para voltar; ⏭ agora volta ao presente)" />
+          <span id="clock" title="tempo · ritmo em relação ao tempo real (só ao vivo) · quadros por segundo">0,0 s</span>
+          <button id="barmore" title="mostrar / esconder a segunda linha de controles">▾</button>
+        </div>
+        <div class="row extra">
+          <span class="grp"><label for="cam" class="muted">câmera</label><select id="cam"><option value="orbit">livre</option><option value="follow">seguir mosca</option><option value="top">de cima</option><option value="security">segurança (lab)</option></select></span>
+          <span class="sep"></span>
+          <span class="grp"><button id="diarybtn" title="diário do dia">📓 <span>diário</span></button>
+          <button id="brainbtn" title="painel do cérebro da mosca selecionada">🧠 <span>cérebro</span></button>
+          <button id="matrixbtn" title="corte Matrix: o cérebro por trás do mundo">🟩 <span>Matrix</span></button>
+          <button id="recbtn" title="gravar vídeo (webm)">⏺ <span>vídeo</span></button>
+          <button id="godbtn" class="liveonly" title="modo Deus (só ao vivo)">⚡ <span>Deus</span></button></span>
+          <span id="livehint" class="muted liveonly"></span>
+        </div>
+        <span id="livestatus"></span>
       </div>
       <div id="diary"></div>
       <div id="dossier"><div id="dossierbody"></div></div>
@@ -114,8 +142,18 @@
           <button data-cmd="add_food">+ comida (perto da selecionada)</button> <button data-cmd="add_ball">+ bola</button>
           <button data-cmd="add_robot">+ robô na superfície</button> <button data-cmd="pause">pausar</button> <button data-cmd="resume">continuar</button></div>
       </div>
-      <div id="brainpanel"><div id="braininfo" class="muted"></div><canvas id="traces" width="300" height="140"></canvas></div>
-      <canvas id="braincanvas"></canvas>
+      <div id="brainbox">
+        <div id="brainhead" title="arraste para mover">
+          <button id="brainprev" title="mosca anterior">◀</button>
+          <select id="brainfly" title="de qual mosca ver o cérebro"></select>
+          <button id="brainnext" title="próxima mosca">▶</button>
+          <span class="spacer"></span>
+          <button id="brainmin" title="esconder / mostrar os detalhes (traços e taxas)">–</button>
+          <button id="brainclose" title="fechar o painel do cérebro">✕</button>
+        </div>
+        <canvas id="braincanvas"></canvas>
+        <div id="brainpanel"><div id="braininfo" class="muted"></div><canvas id="traces" width="300" height="140"></canvas></div>
+      </div>
       <div id="load">carregando replay…</div>
     </div>
     <script type="module" src="/src/main.ts"></script>

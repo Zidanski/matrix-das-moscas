@@ -25,7 +25,7 @@ fly:
   jump_duration_s: 0.12
   hunger_rise_per_s: 0.03      # ganho de fome sobe 1.0 -> 2.0 em ~33 s sem comer
   hunger_max: 2.0
-  starve_after_s: 45           # NOVO (gamificado): sem comer por este tempo E no subsolo (la nao ha comida) -> morre de fome
+  starve_after_s: 45           # NOVO (gamificado): este tempo NO SUBSOLO sem comer (la nao ha comida) -> morre de fome
   starve_only_in_lab: true     # na superficie sempre ha comida por perto; capturada por robo e excecao (o robo a alimenta)
   water_trap_depth_cm: 1.0     # entrou mais que isso na agua: presa ate ser tocada
 

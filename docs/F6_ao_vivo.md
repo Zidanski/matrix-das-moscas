@@ -153,8 +153,8 @@ Tudo desta seção é **camada gamificada** (não vem dos neurônios) e está
 marcado como tal no replay e no dossiê.
 
 - **Fome mortal só no subsolo.** `fly.starve_after_s` (45 s) em
-  `world/world.yaml`: uma mosca que passa esse tempo sem comer **e está no
-  laboratório** (lá não há comida) morre de fome: estado `morta`, fica de
+  `world/world.yaml`: uma mosca que passa esse tempo **no laboratório sem
+  comer** (só o tempo lá embaixo conta; lá não há comida) morre de fome: estado `morta`, fica de
   patas para cima, sem sensores, sem movimento, ignorada pelos robôs e pela
   camada social. Na superfície nunca morre (há comida por perto). **Exceção:
   a mosca capturada** — o robô a alimenta lá embaixo (o relógio de fome
@@ -226,6 +226,38 @@ fome, velocidade, luz e cérebro, e as taxas de saída como ladrilhos com
 palavras (comer, fuga, andar, girar, ré, corte, canção) que acendem quando
 disparam. Barra inferior agrupada e que quebra linha em vez de estourar;
 status do ao vivo numa pílula acima da barra; barras do dossiê em HTML.
+
+## 11. Barra inferior, ritmo do ao vivo, painel do cérebro e convulsão visível (2026-09-23)
+
+- **Barra inferior** em duas linhas (transporte e tempo em cima; câmera e
+  painéis embaixo; ▾ recolhe a segunda linha, lembrado no navegador). Botões
+  maiores, com estado ligado/desligado e desabilitados quando não fazem
+  sentido (⏹ e ⏭ só com um dia em curso; ▶ trava enquanto começa/grava). No
+  ao vivo o botão 🔴 fica vermelho cheio, aparecem ⏹ ↺ ⏭ e ⚡, o rótulo vira
+  "velocidade do mundo" e uma dica explica cada botão.
+- **Ritmo do ao vivo**: 0,25×, 0,5×, 0,75× e 1×. Comando `speed` do
+  visualizador; `Day.rt_speed` divide o passo de parede. Mais lento = os
+  cérebros processam uma fração maior dos ticks (a 0,25× quase todos).
+- **Painel do cérebro** vira uma caixa própria (`#brainbox`) no lado
+  esquerdo, abaixo do HUD, longe do dossiê: arrastável pelo cabeçalho
+  (posição lembrada), com ◀ ▶ e seletor para trocar a mosca (troca a seleção
+  inteira: HUD, dossiê e cérebro), botão – para esconder os traços e ✕ para
+  fechar. O corte Matrix usa a mesma caixa em tela cheia.
+- **Reconexão no meio do dia** (F5 com um dia em curso): o buffer do
+  visualizador cresce até caber o primeiro tick recebido (antes estourava e
+  a tela congelava em 0,0 s) e o desenho não volta antes desse tick.
+- **Convulsão induzida garantida**: o comando ⚡ convulsão força o estado
+  `convulsao` por 100 janelas do cérebro (1,5 s de tempo neural) enquanto
+  injeta 200 Hz em 300 células de Kenyon; antes dependia de a tempestade
+  passar do limiar de ignição, e às vezes não passava. A ignição natural
+  continua dependendo do limiar.
+- **Abrir replay × entrar no ao vivo**: o carregamento do replay é
+  assíncrono; se o usuário entra no ao vivo enquanto ele carrega, o pedido
+  antigo é abandonado (antes ele sobrescrevia o ao vivo e a tela congelava).
+- **Convulsão visível**: com o estado `convulsao` a mosca treme violentamente,
+  rola de lado, as pernas se debatem, o chapéu pula e as asas vibram; na
+  nuvem de neurônios tudo pulsa em vermelho, os que disparam ficam brancos,
+  a nuvem incha e a câmera treme (`BrainCloud.update(..., ignited)`).
 
 ## 7. Verificação
 

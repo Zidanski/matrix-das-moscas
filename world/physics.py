@@ -43,6 +43,7 @@ class FlyBody:
     time_in_lab: float = 0.0
     captures: int = 0
     dead: bool = False                             # morreu de fome no subsolo (gamificado)
+    lab_hunger_s: float = 0.0                      # tempo no subsolo sem comer (zera ao comer ou ao ser solta pelo robo)
     t_death: float = -1.0
     enlightened: bool = False                      # voltou do laboratorio "iluminada" (viu o mundo magico)
     enlightened_t: float = -1.0
@@ -242,5 +243,6 @@ class Physics:
             b.hunger_gain = 1.0
             b.t_last_meal = t
             b.time_feeding += dt
+            b.lab_hunger_s = 0.0
         else:
             b.hunger_gain = min(float(f["hunger_max"]), 1.0 + float(f["hunger_rise_per_s"]) * (t - b.t_last_meal))
