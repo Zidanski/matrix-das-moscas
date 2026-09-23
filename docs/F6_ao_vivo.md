@@ -185,6 +185,48 @@ Testes: `tests/test_social.py` cobre a morte no subsolo com a capturada
 isenta e a superfície imune, a profeta que converte 3 e dispara a revolução,
 e a cética que a acha maluca.
 
+## 10. Ao vivo em tempo real de verdade e HUD novo (2026-09-23)
+
+O dono reclamou, com razão: o relógio biológico do ao vivo andava a 0,1–0,3×
+do relógio de parede, porque cada tick do mundo esperava os 6 cérebros e os
+machos custam ~1,4 s por segundo biológico. Agora o servidor ao vivo roda o
+**modo tempo real** (`Day(realtime=True)`; `uv run matrix live --sync`
+devolve o modo síncrono exato):
+
+- **O mundo anda no relógio de parede** (15 ms por tick, `time.sleep` até o
+  instante certo; se atrasar mais de 1 s não tenta recuperar em rajada).
+- **Os cérebros trabalham em paralelo e sem barreira**: até 4 em cálculo;
+  assim que um devolve, recebe a janela seguinte (quem está ocioso há mais
+  tempo entra primeiro). Enquanto um cérebro calcula, a mosca mantém o
+  último comando motor (o salto, que é de um tick, não se repete).
+- **Janelas puladas ficam registradas**: campo `brain_step` por tick (1 =
+  o cérebro processou este tick). O HUD mostra "cérebro: N % dos ticks";
+  o manifesto grava `realtime` e as métricas `fracao_de_ticks_com_cerebro`
+  por mosca e `ritmo_parede` do dia. Consequência honesta: o tempo neural
+  corre mais devagar que o mundo (com 20–25 % dos ticks, um reflexo que
+  levaria 100 ms leva ~400 ms de mundo). O `simulate` offline continua
+  síncrono e exato; só o ao vivo pula janelas.
+- **Comandos de cérebro do modo Deus** com o cérebro ocupado entram numa
+  fila e são aplicados quando ele devolve (não corrompe o pipe).
+- **Arranque**: os 6 processos sobem em paralelo (antes, um por vez), os
+  workers rodam com prioridade abaixo do normal (o navegador ganha a CPU) e o
+  servidor **pré-aquece os cérebros do próximo dia** enquanto ninguém assiste
+  (estado `warming`): o ▶ começa na hora, inclusive depois de parar/reiniciar.
+
+Medido nesta máquina com o visualizador aberto: relógio a **0,97–0,99× do
+tempo real**, 6 cérebros processando 20–26 % dos ticks cada, ▶ começando em
+menos de 1 s. Teste `test_realtime_day_keeps_wall_clock_and_marks_skipped_windows`
+usa cérebros falsos lentos e confere ritmo, `brain_step`, motor mantido e a
+fila de comandos.
+
+**HUD novo** (`hudHtml` em `web/src/main.ts`): nome grande com o chapéu,
+humor em destaque, fichas de estado (estado, convulsão, laboratório, quem
+está no comando: 🧠 reflexo ou 🎮 Sims), pensamentos como fichas, barras de
+fome, velocidade, luz e cérebro, e as taxas de saída como ladrilhos com
+palavras (comer, fuga, andar, girar, ré, corte, canção) que acendem quando
+disparam. Barra inferior agrupada e que quebra linha em vez de estourar;
+status do ao vivo numa pílula acima da barra; barras do dossiê em HTML.
+
 ## 7. Verificação
 
 Testes: 39 passam (`tests/test_social.py` cobre a camada social, o modo Deus

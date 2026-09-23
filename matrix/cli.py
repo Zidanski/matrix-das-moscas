@@ -138,6 +138,7 @@ def main(argv: list[str] | None = None) -> int:
     lv.add_argument("--port", type=int, default=8765)
     lv.add_argument("--out", default="runs/live")
     lv.add_argument("--control", default=None)
+    lv.add_argument("--sync", action="store_true", help="cerebros em sincronia exata com o mundo (sem tempo real; o relogio anda a ~0,3x)")
     lv.set_defaults(func=cmd_live)
 
     args = ap.parse_args(argv)

@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { listRuns, loadReplay, Replay } from "./replay";
 import { World3D } from "./scene";
-import { mood, thoughts, likes } from "./mood";
+import { mood, thoughts } from "./mood";
 import { BrainCloud, Traces } from "./brain";
 import { LiveClient, LiveReplay } from "./live";
 import { traits, relationLines, recentLog, needsBars } from "./dossier";
@@ -72,15 +72,15 @@ async function boot() {
 
 function setLiveState(st: string) {
   liveState = st;
-  const label: Record<string, string> = { idle: "pronto: clique ▶ para começar", starting: "criando os 6 cérebros…", running: "ao vivo", paused: "tempo pausado", stopping: "parando e gravando o dia…" };
+  const label: Record<string, string> = { idle: "pronto: clique ▶ para começar", warming: "preparando os 6 cérebros (pode clicar ▶: começa assim que ficarem prontos)", starting: "começando…", running: "ao vivo", paused: "tempo pausado", stopping: "parando e gravando o dia…" };
   $("livestatus").textContent = "🔴 " + (label[st] ?? st);
   $("play").textContent = st === "running" ? "❚❚" : "▶";
-  if (st === "idle" && !replay) {
+  if ((st === "idle" || st === "warming") && !replay) {
     $("load").style.display = "flex";
     $("load").innerHTML = `AO VIVO pronto. <button id="bigplay">▶ começar</button>`;
     $("bigplay").onclick = () => $("play").click();
   }
-  if (st === "starting") { $("load").style.display = "flex"; $("load").textContent = "criando os 6 cérebros (20–40 s)…"; }
+  if (st === "starting") { $("load").style.display = "flex"; $("load").textContent = "começando o dia…"; }
   if (st === "running" || st === "paused") $("load").style.display = "none";
 }
 
@@ -231,17 +231,7 @@ function draw() {
     if (i === selected) {
       selPos = pos;
       const f = m.flies[i];
-      const rates = ["MN9", "gf", "odn1", "dna01", "dna02", "mdn", "p1", "pip10"].map((p) => {
-        const key = `rate_${p}_all`; return key in replay!.fi ? `${p} ${replay!.get(k, i, key).toFixed(1)}` : null;
-      }).filter(Boolean).join(" · ");
-      const lk = likes(replay!, k, i);
-      sel.innerHTML = `<b style="color:${f.color}">${f.name}</b> ${f.sex === "male" ? "♂ macho" : "♀ fêmea"} — <span class="muted">${f.hud}</span><br>` +
-        `<span style="font-size:18px">${md.emoji}</span> <b style="color:${md.color}">${md.word}</b> · pensa em: ${th.length ? th.map((x) => `${x.emoji} ${x.label}`).join(", ") : "nada (sensores em silêncio)"}<br>` +
-        `estado: <b>${state}</b> · v ${replay!.get(k, i, "v").toFixed(2)} cm/s · fome ×${replay!.get(k, i, "hunger").toFixed(2)}` +
-        (replay!.get(k, i, "ignited") > 0 ? ' · <b style="color:#e63946">CONVULSÃO</b>' : "") + "<br>" +
-        `gosta de: ${lk.length ? lk.join(", ") : "ainda não se sabe"}<br>` +
-        `<span class="muted">Hz: ${rates}</span><br>` +
-        `<span class="muted">${m.brain_mode === "full" ? "cérebro completo" : "cérebro reduzido"} · luz ${(light * 100).toFixed(0)} % · dia ${m.day_index ?? 0}${lvl === 1 ? " · <b style=\"color:#c77dff\">NO LABORATÓRIO</b>" : lvl === 2 ? " · <b>FUGIU</b>" : ""}</span>`;
+      if (frameNo % 4 === 0 || !(playing || live)) sel.innerHTML = hudHtml(replay!, k, i, f, md, th, state, lvl, light);
     }
   });
   world.setUnderground(anyUnder || camMode === "security");
@@ -291,7 +281,7 @@ function loop() {
     // quadros, entao a animacao fica lisa (60 fps) mesmo com a simulacao a 0,2x do tempo real
     const latest = replay.manifest.ticks - 1;
     tick += dtWall * liveRate();
-    if (latest - tick > 30) tick = latest - 2;   // atrasou demais (ex.: aba em segundo plano): pula
+    if (latest - tick > 12) tick = latest - 2;   // atrasou demais (ex.: aba em segundo plano): pula
     if (tick > latest) tick = latest;
     draw();
   } else if (replay && playing) {
@@ -310,13 +300,58 @@ function loop() {
   }
 }
 
+// Taxas de saida que valem a pena mostrar, em palavras: [populacao, rotulo, escala Hz para a barra cheia]
+const HUD_RATES: [string, string, number][] = [["MN9", "comer", 80], ["gf", "fuga", 20], ["odn1", "andar", 60], ["dna01", "girar", 60], ["mdn", "ré", 60], ["p1", "corte", 40], ["pip10", "canção", 40], ["dna02", "girar 2", 60]];
+const STATE_PT: Record<string, string> = { parada: "parada", andando: "andando", re: "dando ré", comendo: "comendo", saltando: "saltando", cantando: "cantando", presa: "presa na água", convulsao: "convulsão", capturada: "capturada", grooming: "se limpando", lutando: "lutando", cortejando: "cortejando", dancando: "dançando", flertando: "flertando", passeando: "passeando", jogando_bola: "jogando bola", jogando_cartas: "jogando cartas", apostando: "apostando", morta: "morta", pregando: "pregando", ouvindo: "ouvindo" };
+const HAT_EMOJI: Record<string, string> = { cartola: "🎩", palha: "👒", coroa: "👑", bone: "🧢", cowboy: "🤠", mago: "🧙" };
+
+function hudHtml(rp: Replay, k: number, i: number, f: any, md: { emoji: string; word: string; color: string }, th: { emoji: string; label: string }[], state: string, lvl: number, light: number): string {
+  const m = rp.manifest;
+  const esc = (x: string) => x.replace(/[&<>]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch] as string));
+  const bar = (v: number, txt: string, color = "var(--accent)") => `<div class="bar"><i style="width:${Math.round(Math.max(0, Math.min(1, v)) * 100)}%;background:${color}"></i><b>${txt}</b></div>`;
+  const hunger = rp.get(k, i, "hunger");                           // 1,0 = saciada ... 2,0 = faminta
+  const v = Math.abs(rp.get(k, i, "v"));
+  const chips: string[] = [];
+  chips.push(`<span class="chip">${STATE_PT[state] ?? state}</span>`);
+  if (rp.get(k, i, "ignited") > 0) chips.push(`<span class="chip warn">CONVULSÃO</span>`);
+  if (lvl === 1) chips.push(`<span class="chip lab">no laboratório</span>`);
+  if (lvl === 2) chips.push(`<span class="chip warn">FUGIU</span>`);
+  if (rp.fi["gamified"] !== undefined && rp.get(k, i, "gamified") > 0) chips.push(`<span class="chip" title="a camada Sims está guiando (cérebro ocioso)">🎮 Sims</span>`);
+  else chips.push(`<span class="chip" title="o cérebro está no comando">🧠 reflexo</span>`);
+  // cerebro no modo tempo real: fracao dos ultimos 66 ticks que ele processou
+  let brainShare = -1;
+  if (rp.fi["brain_step"] !== undefined && m.realtime) {
+    let n = 0, s = 0;
+    for (let j = Math.max(0, k - 66); j <= k; j++) { s += rp.get(j, i, "brain_step"); n++; }
+    brainShare = n ? s / n : 0;
+  }
+  const rates = HUD_RATES.map(([p, label, scale]) => {
+    const key = `rate_${p}_all`; if (!(key in rp.fi)) return "";
+    const hz = rp.get(k, i, key);
+    return `<div class="rate${hz > scale * 0.15 ? " on" : ""}" title="${p}: ${hz.toFixed(1)} Hz"><b>${hz.toFixed(0)}</b>${label}</div>`;
+  }).join("");
+  const thoughts = th.length ? th.map((x) => `<span class="chip">${x.emoji} ${esc(x.label)}</span>`).join("") : `<span class="chip muted">sensores em silêncio</span>`;
+  return `<div class="name"><span class="dot" style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${f.color}"></span>${esc(f.name)} ${HAT_EMOJI[f.hat] ?? ""}<span class="sex">${f.sex === "male" ? "♂ macho" : "♀ fêmea"}</span></div>` +
+    `<div class="mood"><span class="emoji">${md.emoji}</span><b style="color:${md.color}">${esc(md.word)}</b></div>` +
+    `<div class="chips">${chips.join("")}</div>` +
+    `<div class="chips" title="o que os sensores estão captando agora">💭 ${thoughts}</div>` +
+    `<div class="grid">` +
+    `<span class="k">fome</span>${bar(hunger - 1, hunger > 1.6 ? "faminta" : hunger > 1.25 ? "com fome" : "saciada", hunger > 1.6 ? "#e63946" : hunger > 1.25 ? "#ffd166" : "var(--accent)")}` +
+    `<span class="k">velocidade</span>${bar(v / 3, `${v.toFixed(1)} cm/s`, "#4cc9f0")}` +
+    `<span class="k">luz</span>${bar(light, light > 0.5 ? "dia" : "noite", "#ffd166")}` +
+    (brainShare >= 0 ? `<span class="k" title="modo tempo real: fração dos ticks que o cérebro conseguiu processar">cérebro</span>${bar(brainShare, `${Math.round(brainShare * 100)} % dos ticks`, brainShare > 0.7 ? "var(--accent)" : "#ffd166")}` : "") +
+    `</div>` +
+    `<div class="rates" title="taxas de disparo das populações de saída (Hz)">${rates}</div>` +
+    `<div class="foot">${esc(f.hud)} · dia ${m.day_index ?? 0}${m.realtime ? " · tempo real" : ""}</div>`;
+}
+
 function drawDossier(k: number) {
   if (!replay) return;
   const f = replay.manifest.flies[selected];
   const esc = (x: string) => x.replace(/[&<>]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch] as string));
   $("dossierbody").innerHTML =
     `<h3 style="color:${f.color}">${f.name} ${f.sex === "male" ? "♂" : "♀"} — dossiê</h3>` +
-    `<div class="bars">${esc(needsBars(replay, k, selected))}</div>` +
+    `<div class="bars">${needsBars(replay, k, selected)}</div>` +
     `<h3>Traços e gostos</h3><ul>${traits(replay, k, selected).map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` +
     `<h3>Relações</h3><ul>${relationLines(replay, k, selected).map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` +
     `<h3>Últimos acontecimentos</h3><ul class="log">${recentLog(replay, k, selected).map((t) => `<li>${esc(t)}</li>`).join("")}</ul>`;
@@ -371,7 +406,7 @@ $("nowbtn").onclick = () => { liveFollow = true; if (replay) { tick = replay.man
 $("play").onclick = () => {
   if (live) {
     // ao vivo: ▶ comeca ou retoma o TEMPO da simulacao; ❚❚ pausa de verdade
-    if (liveState === "idle") live.send({ cmd: "start" });
+    if (liveState === "idle" || liveState === "warming") live.send({ cmd: "start" });
     else if (liveState === "running") live.send({ cmd: "pause" });
     else if (liveState === "paused") live.send({ cmd: "resume" });
     liveFollow = true;

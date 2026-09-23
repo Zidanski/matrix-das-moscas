@@ -26,8 +26,11 @@ ENDLESS_S = 1e9
 
 
 class LiveServer:
-    def __init__(self, port: int, out: str, brain: str = "reduced", control: str | None = None):
+    def __init__(self, port: int, out: str, brain: str = "reduced", control: str | None = None, realtime: bool = True):
         self.port, self.out, self.brain, self.control = port, out, brain, control
+        self.realtime = realtime
+        self.warm: tuple[int, Day] | None = None       # proximo dia com os cerebros ja criados
+        self.warm_thread: threading.Thread | None = None
         self.clients: set = set()
         self.commands: queue.Queue = queue.Queue()      # para o Day (modo Deus, pause/resume)
         self.control_cmds: queue.Queue = queue.Queue()  # start/stop/reset (para o loop do servidor)
@@ -54,17 +57,53 @@ class LiveServer:
         self._broadcast({"type": "tick", **frame})
 
     # ---- simulacao (thread) ----
-    def run_day(self):
+    def _next_idx(self) -> int:
         idx = 0
         while (Path(self.out) / f"day_{idx:04d}" / "manifest.json").exists():
             idx += 1
-        self.set_state("starting", day=idx)
+        return idx
+
+    def _make_day(self, idx: int) -> Day:
         d = Day(ENDLESS_S, brain_mode=self.brain, out_dir=Path(self.out) / f"day_{idx:04d}", control_fly=self.control,
-                day_index=idx, on_tick=self.on_tick, commands=self.commands, log=lambda *a, **k: print(*a, flush=True))
-        self.day = d
+                day_index=idx, on_tick=self.on_tick, commands=self.commands, log=lambda *a, **k: print(*a, flush=True),
+                realtime=self.realtime)
         d.flies = d._spawn_brains()
         flies = d.flies
         d._spawn_brains = lambda: flies
+        return d
+
+    def prewarm(self):
+        """Cria os 6 cerebros do proximo dia enquanto ninguem assiste: o play comeca na hora."""
+        if self.warm_thread and self.warm_thread.is_alive():
+            return
+        def work():
+            idx = self._next_idx()
+            self.set_state("warming", day=idx)
+            try:
+                self.warm = (idx, self._make_day(idx))
+                print(f"[ao vivo] cerebros do dia {idx} prontos", flush=True)
+            except Exception as e:  # noqa: BLE001
+                print("[ao vivo] falha ao pre-aquecer:", e, flush=True)
+            if self.state == "warming":
+                self.set_state("idle")
+        self.warm_thread = threading.Thread(target=work, daemon=True)
+        self.warm_thread.start()
+
+    def run_day(self):
+        if self.warm_thread and self.warm_thread.is_alive():
+            self.set_state("starting")
+            self.warm_thread.join()
+        idx = self._next_idx()
+        self.set_state("starting", day=idx)
+        if self.warm and self.warm[0] == idx:
+            d = self.warm[1]
+        else:
+            if self.warm:
+                for fl in self.warm[1].flies:
+                    fl.close()
+            d = self._make_day(idx)
+        self.warm = None
+        self.day = d
         self.hello = self._hello(d)
         self._broadcast({"type": "hello", **self.hello})
         self.set_state("running", day=idx)
@@ -75,13 +114,14 @@ class LiveServer:
         self.day = None
         self.hello = None
         self.set_state("idle")
+        self.prewarm()
 
     def _hello(self, d: Day) -> dict:
         from replay.format import BASE_FIELDS, STATE_IDS, LEVEL_IDS, ROBOT_FIELDS, LAB_FIELDS
         from brain.types import OUTPUTS, INPUTS
         from dataclasses import asdict
         fields = BASE_FIELDS + [f"rate_{p}_{s}" for p in OUTPUTS for s in ("all", "L", "R")] + [f"in_{p}_{s}" for p in INPUTS for s in ("L", "R")]
-        return {"world": d.w, "interface": d.cfg, "dt_s": d.dt, "seconds": 0.0, "brain_mode": d.brain_mode, "day_index": d.day_index,
+        return {"world": d.w, "interface": d.cfg, "dt_s": d.dt, "seconds": 0.0, "brain_mode": d.brain_mode, "day_index": d.day_index, "realtime": d.realtime,
                 "fields": fields, "n_flies": len(d.bodies), "n_spheres": len(d.objects.spheres), "state_ids": STATE_IDS, "level_ids": LEVEL_IDS,
                 "robot_fields": ROBOT_FIELDS, "lab_fields": LAB_FIELDS, "n_robots": len(d.robots.robots) if d.robots else 0,
                 "world_row_len": (len(d.robots.robots) * 4 + 4) if d.robots else 0,
@@ -141,7 +181,9 @@ class LiveServer:
         import websockets
         self.loop = asyncio.get_running_loop()
         async with websockets.serve(self.handler, "localhost", self.port, max_size=None):
-            print(f"[ao vivo] servidor em ws://localhost:{self.port}; esperando 'start' do visualizador", flush=True)
+            print(f"[ao vivo] servidor em ws://localhost:{self.port}; esperando 'start' do visualizador"
+                  + (" (tempo real: cerebros pulam janelas se nao acompanham)" if self.realtime else " (sincrono exato)"), flush=True)
+            self.prewarm()
             while True:
                 await asyncio.sleep(1.0)
 
@@ -171,6 +213,6 @@ async def _safe_send(ws, msg):
 
 
 def main(args) -> int:
-    srv = LiveServer(args.port, args.out, args.brain, args.control)
+    srv = LiveServer(args.port, args.out, args.brain, args.control, realtime=not getattr(args, "sync", False))
     asyncio.run(srv.serve())
     return 0

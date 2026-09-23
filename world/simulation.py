@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import math
 import multiprocessing as mp
+import sys
 from multiprocessing.connection import wait as mp_wait
 import time
 from dataclasses import asdict
@@ -75,6 +76,14 @@ def _step_with_ignition(fly, state, pack):
 
 
 def _fly_worker(conn, pack_name: str, identity: dict, cfg: dict, control_seed: int | None):
+    # prioridade abaixo do normal: o navegador (visualizador) e o processo do mundo ganham a CPU primeiro
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            k32 = ctypes.windll.kernel32
+            k32.SetPriorityClass(k32.GetCurrentProcess(), 0x00004000)   # BELOW_NORMAL_PRIORITY_CLASS
+        except Exception:  # noqa: BLE001
+            pass
     from brain.pack import ConnectomePack
     from brain.shuffle import shuffled_pack
     from interface.fly_brain import FlyBrain, FlyIdentity
@@ -131,12 +140,18 @@ def _fly_worker(conn, pack_name: str, identity: dict, cfg: dict, control_seed: i
 
 
 class RemoteFly:
-    def __init__(self, pack_name, identity, cfg, control_seed=None):
+    def __init__(self, pack_name, identity, cfg, control_seed=None, wait: bool = True):
         ctx = mp.get_context("spawn")
         self.conn, child = ctx.Pipe()
         self.proc = ctx.Process(target=_fly_worker, args=(child, pack_name, identity, cfg, control_seed), daemon=True)
         self.proc.start()
-        self.info = self.conn.recv()
+        self.info = self.conn.recv() if wait else None
+
+    def wait_info(self):
+        """Os 6 processos sobem em paralelo: primeiro todos os start(), depois os recv()."""
+        if self.info is None:
+            self.info = self.conn.recv()
+        return self.info
 
     def send(self, state, hunger):
         self.conn.send((state, hunger))
@@ -187,8 +202,17 @@ class LocalFly:
 class Day:
     def __init__(self, seconds: float, brain_mode: str = "reduced", out_dir: Path | str = "runs/day",
                  world_cfg: dict | None = None, iface_cfg: dict | None = None, control_fly: str | None = None,
-                 fly_factory=None, day_index: int = 0, log=print, on_tick=None, commands=None):
+                 fly_factory=None, day_index: int = 0, log=print, on_tick=None, commands=None, realtime: bool = False):
         self.w = world_cfg or load_world()
+        # modo tempo real (ao vivo): o mundo anda no relogio de parede; cada cerebro processa as
+        # janelas de 15 ms que conseguir, em paralelo, e pula as outras (motor mantido). Marcado
+        # por tick no campo brain_step. Fora do ao vivo (simulate) e sempre sincrono e exato.
+        self.realtime = bool(realtime)
+        self._rt_busy: dict = {}          # conn -> indice da mosca em calculo
+        self._rt_last: dict = {}          # indice -> ultima saida do cerebro
+        self._rt_sent: dict = {}          # indice -> tick do ultimo envio
+        self._rt_steps: dict = {}         # indice -> janelas processadas
+        self._rt_cmds: dict = {}          # indice -> comandos do modo Deus esperando o cerebro ficar livre
         self.cfg = iface_cfg or load_config()
         self.seconds = float(seconds)
         self.dt = float(self.cfg["loop"]["dt_ms"]) / 1000.0
@@ -235,9 +259,45 @@ class Day:
             if self.fly_factory is not None:
                 flies.append(LocalFly(self.fly_factory(ident)))
             else:
-                flies.append(RemoteFly(self._pack_for(f["sex"]), ident, self.cfg, control_seed=(int(f["seed"]) if ident["control"] else None)))
-            self.log(f"  {f['name']} ({f['sex']}): {flies[-1].info['hud']}")
+                flies.append(RemoteFly(self._pack_for(f["sex"]), ident, self.cfg, control_seed=(int(f["seed"]) if ident["control"] else None), wait=False))
+        for f, fl in zip(self.w["flies"], flies):
+            if hasattr(fl, "wait_info"):
+                fl.wait_info()
+            self.log(f"  {f['name']} ({f['sex']}): {fl.info['hud']}")
         return flies
+
+    # ------------------------------------------------------------ tempo real
+    def _rt_dispatch_cmds(self, flies, i):
+        for kind in self._rt_cmds.pop(i, []):
+            flies[i].command(kind)
+
+    def _brains_realtime(self, flies, conns, states, k, maxc):
+        """Nao espera ninguem: recolhe o que terminou, manda o proximo lote, mantem o motor de quem esta calculando."""
+        busy, last, sent = self._rt_busy, self._rt_last, self._rt_sent
+        fresh = set()
+        for c in (mp_wait(list(busy), timeout=0) if busy else []):
+            i = busy.pop(c)
+            last[i] = flies[i].recv()
+            fresh.add(i)
+            self._rt_steps[i] = self._rt_steps.get(i, 0) + 1
+            self._rt_dispatch_cmds(flies, i)
+        idle = sorted((i for i in range(len(flies)) if conns[i] not in busy and not self.bodies[i].dead), key=lambda i: sent.get(i, -1))
+        for i in idle:
+            if len(busy) >= maxc:
+                break
+            flies[i].send(states[i], self.bodies[i].hunger_gain)
+            busy[conns[i]] = i
+            sent[i] = k
+        outs = []
+        for i in range(len(flies)):
+            o = dict(last.get(i) or {"motor": asdict(MotorState()), "ignited": False, "spikes": 0, "fired": np.zeros(0, np.uint16)})
+            o["stepped"] = i in fresh
+            if not o["stepped"]:
+                m = dict(o["motor"]); m["jump"] = False        # o salto e de um tick so: nao repete enquanto o cerebro calcula
+                o["motor"] = m
+                o["fired"] = np.zeros(0, np.uint16)
+            outs.append(o)
+        return outs
 
     def run(self) -> Path:
         t0 = time.time()
@@ -245,7 +305,7 @@ class Day:
         self.flies = flies
         n_ticks = int(round(self.seconds / self.dt))
         manifest = {"world": self.w, "interface": self.cfg, "dt_s": self.dt, "seconds": self.seconds,
-                    "brain_mode": self.brain_mode, "day_index": self.day_index,
+                    "brain_mode": self.brain_mode, "day_index": self.day_index, "realtime": self.realtime,
                     "flies": [{"name": b.name, "sex": b.sex, "color": self.w["flies"][b.idx]["color"], "hat": self.w["flies"][b.idx].get("hat", ""), "hud": fl.info["hud"],
                                "n_neurons": fl.info["n"], "missing_inputs": fl.info["missing"], "control": self.w["flies"][b.idx]["name"] == self.control_fly}
                               for b, fl in zip(self.bodies, flies)],
@@ -275,14 +335,25 @@ class Day:
         starve_lab_only = bool(self.physics.f.get("starve_only_in_lab", True))
         last_stuck: dict[str, float] = {}
         k = -1
+        wall0 = time.time()
         while k + 1 < n_ticks and not self.stop:
             k += 1
             t = k * self.dt
             self.physics.t = t
             self._process_commands(t)
-            while self.paused and not self.stop:
-                self._process_commands(t)
-                time.sleep(0.05)
+            if self.paused:
+                while self.paused and not self.stop:
+                    self._process_commands(t)
+                    time.sleep(0.05)
+                wall0 = time.time() - k * self.dt
+            if self.realtime:
+                # relogio de parede: espera se adiantou; se atrasou mais de 1 s, nao tenta recuperar em rajada
+                target = wall0 + k * self.dt
+                now = time.time()
+                if now < target:
+                    time.sleep(target - now)
+                elif now - target > 1.0:
+                    wall0 = now - k * self.dt
             robots = self.robots.robots if self.robots else []
             states = [self.senses.sense(b, self.bodies, songs, t, self.dt, robots) for b in self.bodies]
             for b, st in zip(self.bodies, states):
@@ -293,7 +364,9 @@ class Day:
             # de grupos fixos que esperam o mais lento de cada grupo.
             outs = [None] * len(flies)
             conns = [getattr(f, "conn", None) for f in flies]
-            if all(c is not None for c in conns) and len(flies) > maxc:
+            if self.realtime and all(c is not None for c in conns):
+                outs = self._brains_realtime(flies, conns, states, k, maxc)
+            elif all(c is not None for c in conns) and len(flies) > maxc:
                 pending = sorted(range(len(flies)), key=lambda i: self.bodies[i].sex != "male")
                 inflight: dict = {}
                 while pending or inflight:
@@ -366,7 +439,7 @@ class Day:
                     writer.add_event(t, "salto", [b.name], loom=round(loom_side[b.name], 2), motivo=motivo)
                 row = [b.x, b.y, b.z, b.heading, b.v, b.omega, STATE_IDS.get(b.state, 0), b.hunger_gain, float(out["ignited"]),
                        float(out["spikes"]), float(m.feed), float(m.jump), float(m.song), float(m.court), float(b.stuck), float(LEVEL_IDS[b.level]),
-                       gamified] + self.social.rows(b.name)
+                       gamified] + self.social.rows(b.name) + [float(out.get("stepped", True))]
                 r = m.rates_hz
                 for p in self.rate_pops:
                     d = r.get(p, {"all": 0.0, "L": 0.0, "R": 0.0})
@@ -433,12 +506,18 @@ class Day:
             self.stats[b.name]["tempo_no_subsolo_s"] = round(b.time_in_lab, 2)
             self.stats[b.name]["capturas"] = captures[b.name]
             self.stats[b.name]["morreu_de_fome_s"] = deaths.get(b.name)
+            if self.realtime:
+                self.stats[b.name]["janelas_do_cerebro"] = int(self._rt_steps.get(b.idx, 0))
+                self.stats[b.name]["fracao_de_ticks_com_cerebro"] = round(self._rt_steps.get(b.idx, 0) / max(1, k + 1), 3)
             self.stats[b.name]["iluminada"] = bool(b.enlightened)
         secrets = self.secrets.summary() if self.secrets else {}
         self.stats["_dia"]["social"] = self.social.summary()
         self.stats["_dia"]["segredos"] = {k: {"quase": v["quase"], "disparou": v["disparou"]} for k, v in secrets.items() if isinstance(v, dict)}
         self.stats["_dia"]["fugiram"] = secrets.get("fugiram", [])
         self.stats["_dia"]["mortes"] = deaths
+        self.stats["_dia"]["tempo_real"] = self.realtime
+        if self.realtime:
+            self.stats["_dia"]["ritmo_parede"] = round(self.seconds / max(1e-6, time.time() - t0), 3)
         diary = write_diary(self.day_index, self.seconds, manifest["flies"], self.stats, writer.events, secrets,
                             self.cfg.get("interventions"))
         (self.out_dir).mkdir(parents=True, exist_ok=True)
@@ -473,7 +552,12 @@ class Day:
         elif kind == "mute":
             self.senses.mute[cmd.get("channel", "song")] = bool(cmd.get("on", True))
         elif kind in ("reset_brain", "save_brain", "restore_brain", "ignite") and idx is not None:
-            res = self.flies[idx].command({"reset_brain": "reset", "save_brain": "save", "restore_brain": "restore", "ignite": "ignite"}[kind])
+            mapped = {"reset_brain": "reset", "save_brain": "save", "restore_brain": "restore", "ignite": "ignite"}[kind]
+            if self.realtime and getattr(self.flies[idx], "conn", None) in self._rt_busy:
+                self._rt_cmds.setdefault(idx, []).append(mapped)     # o cerebro esta calculando: aplica quando devolver
+                res = {"ok": True, "cmd": mapped, "queued": True}
+            else:
+                res = self.flies[idx].command(mapped)
         elif kind == "add_food":
             x, y = float(cmd.get("x", 0.0)), float(cmd.get("y", 0.0))
             pch = Patch(f"comida_deus_{len(self.objects.patches)}", x, y, 1.2, "sugar", 6.0)

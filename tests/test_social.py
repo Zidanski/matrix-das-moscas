@@ -142,3 +142,61 @@ def test_skeptic_thinks_prophet_is_crazy():
         kinds |= {e["kind"] for e in ev}
     assert "achou_maluca" in kinds and "acreditou_no_mundo_magico" not in kinds
     assert ("b", "a") in layer.skeptics and layer.revolution_t < 0
+
+
+class _FakeRemote:
+    """Cerebro remoto de mentira: responde pelo Pipe depois de `delay` s (para o modo tempo real)."""
+
+    def __init__(self, delay: float):
+        import multiprocessing as mp
+        import threading
+        self.conn, child = mp.Pipe()
+        import numpy as np
+        self.info = {"ok": True, "hud": "fake", "n": 0, "missing": [], "soma": np.zeros((0, 3), np.float32), "classes": np.zeros(0, np.uint8), "class_names": []}
+        self.delay = delay
+        self.n = 0
+
+        def serve():
+            import time as _t
+            from dataclasses import asdict
+            while True:
+                msg = child.recv()
+                if msg is None:
+                    break
+                if isinstance(msg, dict):
+                    child.send({"ok": True, "cmd": msg.get("cmd")}); continue
+                _t.sleep(self.delay); self.n += 1
+                child.send({"motor": asdict(MotorState(forward_cm_s=0.5)), "ignited": False, "spikes": 0, "fired": []})
+        threading.Thread(target=serve, daemon=True).start()
+
+    def send(self, state, hunger): self.conn.send((state, hunger))
+    def recv(self): return self.conn.recv()
+    def command(self, cmd): self.conn.send({"cmd": cmd}); return self.conn.recv()
+    def close(self):
+        try: self.conn.send(None)
+        except Exception: pass
+
+
+def test_realtime_day_keeps_wall_clock_and_marks_skipped_windows(tmp_path):
+    import time
+    day = Day(1.5, out_dir=tmp_path / "rt", log=lambda *a, **k: None, realtime=True)
+    fakes = [_FakeRemote(0.06 if i < 3 else 0.005) for i in range(6)]   # 3 cerebros lentos (60 ms por janela de 15 ms)
+    day._spawn_brains = lambda: fakes
+    t0 = time.time(); d = day.run(); wall = time.time() - t0
+    assert 1.3 <= wall <= 4.0, f"tempo real: 1,5 s bio deveria levar ~1,5 s de parede, levou {wall:.1f}"
+    rp = Replay(d)
+    assert "brain_step" in rp.fi
+    frac_slow = rp.col("brain_step")[:, 0].mean(); frac_fast = rp.col("brain_step")[:, 5].mean()
+    assert frac_slow < 0.5 and frac_fast > frac_slow    # o lento pulou janelas; o rapido pegou mais (4 vagas para 6)
+    assert rp.col("v")[:, 0].max() > 0.3                # motor mantido enquanto o cerebro calcula: a mosca anda
+    assert day.stats["_dia"]["tempo_real"] is True and 0.3 < day.stats["_dia"]["ritmo_parede"] <= 1.2
+    assert day.stats["Ada"]["fracao_de_ticks_com_cerebro"] < 0.5
+    # comando de cerebro com o cerebro ocupado entra na fila e nao corrompe o pipe
+    day2 = Day(0.6, out_dir=tmp_path / "rt2", log=lambda *a, **k: None, realtime=True)
+    fakes2 = [_FakeRemote(0.2) for _ in range(6)]
+    day2._spawn_brains = lambda: fakes2
+    day2.flies = fakes2
+    day2.commands = __import__("queue").Queue()
+    day2.commands.put({"cmd": "reset_brain", "fly": "Ada"})
+    d2 = day2.run()
+    assert Replay(d2).manifest["realtime"] is True

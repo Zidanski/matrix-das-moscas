@@ -99,7 +99,8 @@ revolução rumo ao laboratório. Cada mosca tem um chapéu. Nada disso vem
 dos neurônios: o replay marca cada tick como reflexo (0) ou gamificado (1), o
 HUD mostra qual camada está no comando, e a tabela real/premissa acima vale
 só para a parte neural. S2, S3 e S4 ficaram mais fáceis (intervenção
-registrada). Também: o modo **ao vivo** (opção 🔴 AO VIVO: ▶ começa um dia sem fim,
+registrada). Também: o modo **ao vivo**, em tempo real (o mundo anda no relógio de parede e os
+cérebros pulam janelas quando não acompanham, marcado por tick) (opção 🔴 AO VIVO: ▶ começa um dia sem fim,
 ❚❚ pausa o tempo, ⏹ para e grava, ↺ reinicia do zero), o botão ⚡ abre o **modo Deus** (mudo
 de canção/feromônio/contato, reiniciar/salvar/restaurar cérebro, convulsão,
 comida, bola, robô, teleporte, pausa) e clicar numa mosca abre o **dossiê**

@@ -25,7 +25,7 @@ STATE_IDS = {"parada": 0, "andando": 1, "re": 2, "comendo": 3, "saltando": 4, "c
 STATE_NAMES = {v: k for k, v in STATE_IDS.items()}
 
 BASE_FIELDS = ["x", "y", "z", "heading", "v", "omega", "state", "hunger", "ignited", "spikes", "feed", "jump", "song", "court", "stuck", "level",
-               "gamified", "need_social", "need_fun", "need_romance"]
+               "gamified", "need_social", "need_fun", "need_romance", "brain_step"]   # brain_step: 1 = o cerebro processou este tick (0 = janela pulada no modo tempo real)
 LEVEL_IDS = {"surface": 0, "lab": 1, "fora": 2}
 ROBOT_FIELDS = ["x", "y", "level", "state"]          # por robo, por tick (world.bin)
 LAB_FIELDS = ["door_s2", "hatch", "generator_off", "elevator_open"]   # estado dos mecanismos (world.bin)

@@ -86,7 +86,9 @@ O dono liberou gamificar o que não vem do cérebro. world/social.py assume o
 movimento SÓ quando o cérebro está ocioso (necessidades social/diversão/romance),
 gera interações (comer juntas, dançar, bola, flerte) e relações. O replay marca
 `gamified` por tick; o README declara a camada. Modo ao vivo: `uv run matrix live`
-(WebSocket 8765) com modo Deus e dossiês no visualizador. S2/S3/S4 relaxados
+(WebSocket 8765) com modo Deus e dossiês no visualizador. O ao vivo roda em TEMPO REAL:
+mundo no relógio de parede, cérebros em paralelo pulando janelas (campo brain_step); o
+`simulate` offline continua síncrono e exato. S2/S3/S4 relaxados
 (intervenção registrada em interface/config.yaml).
 
 ## 9. Honestidade científica

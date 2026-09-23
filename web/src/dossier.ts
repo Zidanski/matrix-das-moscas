@@ -184,7 +184,8 @@ export function chips(rp: Replay, k: number, i: number): number {
 
 export function needsBars(rp: Replay, k: number, i: number): string {
   if (rp.fi["need_social"] === undefined) return "";
-  const bar = (v: number) => "▮".repeat(Math.round(v * 10)) + "▯".repeat(10 - Math.round(v * 10));
+  const bar = (label: string, v: number, color: string) => `<span class="k">${label}</span><div class="bar"><i style="width:${Math.round(Math.max(0, Math.min(1, v)) * 100)}%;background:${color}"></i></div>`;
   const h = Math.min(1, (rp.get(k, i, "hunger") - 1));
-  return `fome ${bar(h)}  social ${bar(rp.get(k, i, "need_social"))}  diversão ${bar(rp.get(k, i, "need_fun"))}  romance ${bar(rp.get(k, i, "need_romance"))}  fichas 🎰 ${chips(rp, k, i)}`;
+  return bar("fome", h, h > 0.6 ? "#e63946" : "#ffd166") + bar("social", rp.get(k, i, "need_social"), "#4cc9f0") + bar("diversão", rp.get(k, i, "need_fun"), "#7ee787") +
+    bar("romance", rp.get(k, i, "need_romance"), "#ff8fab") + `<span class="k">fichas</span><span>🎰 ${chips(rp, k, i)}</span>`;
 }
